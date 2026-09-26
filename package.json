@@ -1,0 +1,11 @@
+{
+  "name": "poya-game",
+  "version": "0.1.0",
+  "description": "POYA: a pixelated digital pet you feed, train and battle.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node --test tests/*.test.js"
+  }
+}

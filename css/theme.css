@@ -1,0 +1,91 @@
+/* Design tokens + base styles. Every colour comes from the Sweetie-16 palette. */
+:root {
+  --c-ink: #1a1c2c;
+  --c-plum: #5d275d;
+  --c-red: #b13e53;
+  --c-orange: #ef7d57;
+  --c-yellow: #ffcd75;
+  --c-lime: #a7f070;
+  --c-green: #38b764;
+  --c-teal: #257179;
+  --c-navy: #29366f;
+  --c-blue: #3b5dc9;
+  --c-sky: #41a6f6;
+  --c-cyan: #73eff7;
+  --c-white: #f4f4f4;
+  --c-light: #94b0c2;
+  --c-slate: #566c86;
+  --c-dark: #333c57;
+
+  --bg: var(--c-ink);
+  --panel: #232842;
+  --panel-inset: #1b1f33;
+  --border: #0b0c14;
+  --text: var(--c-white);
+  --muted: var(--c-light);
+  --accent: var(--c-yellow);
+
+  --font-pixel: 'Press Start 2P', ui-monospace, monospace;
+  --font-body: 'VT323', ui-monospace, monospace;
+  --gap: 16px;
+  --shadow: 6px 6px 0 rgba(0, 0, 0, 0.35);
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; min-height: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation; /* no double-tap zoom */
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none; /* no pull-to-refresh in the installed app */
+}
+button, canvas { -webkit-user-select: none; user-select: none; }
+
+body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 2px, transparent 2px);
+  background-size: 32px 32px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 22px;
+  line-height: 1.15;
+  -webkit-font-smoothing: none;
+}
+
+h1, h2, h3 { font-family: var(--font-pixel); font-weight: 400; line-height: 1.4; margin: 0 0 12px; }
+h1 { font-size: clamp(32px, 9vw, 56px); }
+h2 { font-size: 15px; }
+h3 { font-size: 11px; color: var(--accent); }
+p { margin: 0 0 10px; }
+strong { color: var(--accent); font-weight: 400; }
+button, input { font: inherit; color: inherit; }
+
+.muted { color: var(--muted); }
+.error { color: var(--c-orange); min-height: 1.2em; margin: 8px 0 0; }
+
+.app {
+  max-width: 1080px;
+  margin: 0 auto;
+  /* respect notches / home indicator when installed full-screen */
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(72px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+canvas.stage {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+::selection { background: var(--c-plum); }
+
+:focus-visible { outline: 3px solid var(--c-cyan); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

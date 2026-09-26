@@ -1,0 +1,103 @@
+/**
+ * Pixel-art sprites, drawn facing right. One character = one pixel.
+ * '.' is transparent; every other character maps to `palette`.
+ * `blink` is the palette key that replaces the eye pixels ('e') when blinking.
+ * Edit the rows to redesign an animal; all rows must be the same width.
+ */
+export const SPRITES = {
+  wolf: {
+    id: 'wolf',
+    blink: 'g',
+    palette: { k: '#1a1c2c', g: '#566c86', l: '#94b0c2', e: '#ffcd75', n: '#0b0c14' },
+    rows: [
+      '........................',
+      '................k..k....',
+      '...............kgkkgk...',
+      '...............kgggggk..',
+      '..k...........kggggegk..',
+      '.kgk..........kgggggllln',
+      '.kggk........kggggglllk.',
+      '..kggkkkkkkkkggggglk....',
+      '...kgggggggggggggglk....',
+      '...kgggggggggggggllk....',
+      '...kgggggggggggglllk....',
+      '...kglllllllllllllk.....',
+      '...kgk.kgk...kgk.kgk....',
+      '...kgk.kgk...kgk.kgk....',
+      '...kgk.kgk...kgk.kgk....',
+      '...kkk.kkk...kkk.kkk....',
+    ],
+  },
+
+  gorilla: {
+    id: 'gorilla',
+    blink: 's',
+    palette: { k: '#1a1c2c', d: '#3a3a4c', f: '#8a94a6', s: '#9b7f6e', e: '#1a1c2c' },
+    rows: [
+      '..............kkkk......',
+      '.............kddddk.....',
+      '............kddddddk....',
+      '......kkkkkkdddssssk....',
+      '....kkddddddddsesesk....',
+      '...kddddddddddssssssk...',
+      '..kddfffffddddsskkkk....',
+      '..kdfffffffdddddk.......',
+      '.kdffffffffddddddk......',
+      '.kdfffffffffdddddk......',
+      '.kddffffffffddkddk......',
+      '.kdddfffffddddkddk......',
+      '..kddkkkkkddk.kddk......',
+      '..kddk...kddk.kddk......',
+      '..kddk...kddk.kddk......',
+      '.kkkkk..kkkkk.kkkkk.....',
+    ],
+  },
+
+  grizzly: {
+    id: 'grizzly',
+    blink: 'b',
+    palette: { k: '#1a1c2c', b: '#8a5a3c', d: '#5e3a26', t: '#d7a77a', e: '#1a1c2c', n: '#0b0c14' },
+    rows: [
+      '........................',
+      '...............kk..kk...',
+      '..............kbbkkbbk..',
+      '......kkkkkk..kbbbbbbk..',
+      '....kkbbbbbbkkbbbbebbk..',
+      '...kbbbbbbbbbbbbbbbbttk.',
+      '..kbbbbbbbbbbbbbbbbbtttn',
+      '..kbbbbbbbbbbbbbbbbbttk.',
+      '.kbbbbbbbbbbbbbbbbbkkk..',
+      '.kbbbbbbbbbbbbbbbbbk....',
+      '.kbbbbbbbbbbbbbbbbbk....',
+      '.kdbbbbbbbbbbbbbbbdk....',
+      '.kdddkkkkkkkkkkdddk.....',
+      '.kdddk.........kdddk....',
+      '.kdddk.........kdddk....',
+      '.kkkkk.........kkkkk....',
+    ],
+  },
+
+  eagle: {
+    id: 'eagle',
+    blink: 'w',
+    palette: { k: '#1a1c2c', w: '#f4f4f4', y: '#ffcd75', b: '#8a5a3c', d: '#5e3a26', e: '#1a1c2c' },
+    rows: [
+      '..............kkkk......',
+      '.............kwwwwk.....',
+      '............kwwwewkk....',
+      '............kwwwwwyyk...',
+      '............kwwwwwkyk...',
+      '...........kwwwwwk......',
+      '........kkkbbwwwbk......',
+      '......kkdddbbbbbbbk.....',
+      '.....kdddddbbbbbbbbk....',
+      '....kddddddbbbbbbbbk....',
+      '...kdddddddbbbbbbbk.....',
+      '..kdddddddddbbbbbk......',
+      '.kddddkkkddddbbbk.......',
+      'kdddk....kkkkkk.........',
+      'kkk.........yk.yk.......',
+      '...........yyyyyyy......',
+    ],
+  },
+};

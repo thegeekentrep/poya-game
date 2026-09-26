@@ -1,0 +1,321 @@
+/* Layouts for each screen: title, select, home (camp), battle, training modal. */
+
+.screen { display: grid; gap: var(--gap); }
+
+/* ── Title ─────────────────────────────────────── */
+.title-screen { max-width: 760px; margin: 0 auto; }
+.logo { text-align: center; padding-top: 16px; }
+.logo h1 {
+  margin: 0;
+  color: var(--c-yellow);
+  letter-spacing: 6px;
+  text-shadow: 4px 4px 0 var(--c-red), 8px 8px 0 var(--border);
+}
+.subtitle { font-family: var(--font-pixel); font-size: 11px; color: var(--c-cyan); margin-top: 14px; }
+.feature-list strong { font-family: var(--font-pixel); font-size: 10px; }
+
+/* ── Select ────────────────────────────────────── */
+.h-small { font-size: clamp(18px, 4vw, 26px); color: var(--c-yellow); }
+.species-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
+.species-card {
+  text-align: left;
+  padding: 12px;
+  background: var(--panel);
+  border: 4px solid var(--border);
+  box-shadow: inset 0 0 0 2px var(--c-dark), var(--shadow);
+  cursor: pointer;
+  transition: transform 0.1s steps(2);
+}
+@media (hover: hover) { .species-card:hover { transform: translateY(-3px); } }
+.species-card.is-selected { box-shadow: inset 0 0 0 3px var(--c-yellow), var(--shadow); }
+.species-card h3 { font-size: 12px; margin: 10px 0 6px; display: inline-block; }
+.species-card .tag { margin-left: 6px; }
+.species-portrait { background: var(--panel-inset); border: 3px solid var(--border); line-height: 0; }
+.species-tagline { color: var(--muted); min-height: 3.5em; margin-top: 6px; }
+.species-details h2 { color: var(--c-yellow); }
+
+.stats-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+
+/* ── Home / camp ───────────────────────────────── */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 4px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.brand { font-family: var(--font-pixel); font-size: 16px; color: var(--c-yellow); text-shadow: 2px 2px 0 var(--c-red); }
+.tb-stats { display: flex; gap: 18px; flex-wrap: wrap; }
+.tb-coins { color: var(--c-yellow); }
+.tb-coins::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  background: var(--c-yellow);
+  box-shadow: inset -2px -2px 0 var(--c-orange);
+}
+
+.home-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--gap); }
+.actions-panel { grid-column: 1 / -1; }
+
+.pet-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin: 14px 0 8px; flex-wrap: wrap; }
+.pet-name { margin: 0 0 4px; font-size: 18px; color: var(--c-yellow); }
+.pet-meta { margin: 0; }
+
+.thought {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  max-width: 60%;
+  padding: 6px 10px;
+  line-height: 1.1;
+  background: var(--c-white);
+  color: var(--c-ink);
+  border: 3px solid var(--border);
+  font-size: 20px;
+}
+.thought::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  bottom: -9px;
+  width: 6px;
+  height: 6px;
+  background: var(--c-white);
+  border: 3px solid var(--border);
+  border-top: 0;
+  border-left: 0;
+}
+
+.panel-note { margin-bottom: 12px; }
+.panel-note.is-warn { color: var(--c-orange); }
+
+.card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  padding: 12px;
+  background: var(--panel-inset);
+  border: 3px solid var(--border);
+  cursor: pointer;
+}
+@media (hover: hover) { .action-card:hover:not(:disabled) { background: var(--c-dark); } }
+.action-card:disabled { opacity: 0.55; cursor: not-allowed; }
+.action-title { font-family: var(--font-pixel); font-size: 11px; color: var(--c-yellow); }
+.action-desc { color: var(--muted); flex: 1; }
+.action-status { font-size: 18px; color: var(--c-cyan); }
+
+.food-list, .train-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.food-row, .train-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: var(--panel-inset);
+  border: 3px solid var(--border);
+}
+.train-row { grid-template-columns: minmax(0, 1fr) auto; }
+.food-swatch { width: 18px; height: 18px; background: var(--swatch); border: 2px solid var(--border); box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3); }
+.food-name, .train-name { color: var(--text); }
+.food-desc { color: var(--muted); font-size: 19px; }
+.food-owned { font-family: var(--font-pixel); font-size: 10px; color: var(--c-yellow); min-width: 34px; text-align: right; }
+.food-actions { display: flex; gap: 6px; }
+.train-reason { color: var(--c-orange); font-size: 18px; }
+
+.opponent-card {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 12px;
+  background: var(--panel-inset);
+  border: 3px solid var(--border);
+}
+.opponent-portrait { border: 3px solid var(--border); background: var(--c-dark); line-height: 0; }
+.opponent-info h3 { font-size: 12px; margin-bottom: 6px; }
+.opponent-info p { margin: 0 0 4px; }
+.reward { color: var(--c-lime); }
+
+.stat-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+.stat-table th, .stat-table td { text-align: left; padding: 4px 6px; border-bottom: 2px solid var(--c-dark); }
+.stat-table thead th { color: var(--muted); font-weight: 400; }
+.num-good { color: var(--c-lime); }
+.danger-zone { margin-top: 16px; padding-top: 14px; border-top: 3px dashed var(--c-dark); }
+
+/* ── Battle ────────────────────────────────────── */
+.battle-screen { max-width: 720px; margin: 0 auto; gap: 12px; }
+/* 576px canvas (+8px border) = exactly 3× the 192px arena, so pixels stay crisp */
+.arena-frame { width: 100%; max-width: 584px; margin: 0 auto; }
+.battle-head { display: flex; align-items: center; gap: 14px; }
+.battle-head h2 { margin: 0; color: var(--c-orange); font-size: 18px; }
+.round-label { flex: 1; font-family: var(--font-pixel); font-size: 10px; color: var(--muted); }
+.fighters { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: start; }
+.fighter { padding: 10px 12px; background: var(--panel); border: 4px solid var(--border); box-shadow: var(--shadow); }
+.fighter--enemy { text-align: right; }
+.fighter--enemy .bar-head { flex-direction: row-reverse; }
+.fighter--enemy .chips { justify-content: flex-end; }
+.fighter-name { margin-bottom: 6px; }
+.effect-chips { min-height: 24px; }
+.vs { font-family: var(--font-pixel); font-size: 14px; color: var(--c-orange); align-self: center; }
+.mood-note { margin: 0; }
+
+.ability-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.battle-screen .panel { padding: 12px; }
+.battle-screen .fighter { padding: 8px 10px; }
+.ability-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 8px;
+  text-align: left;
+  background: var(--c-blue);
+  border: 3px solid var(--border);
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3), inset 3px 3px 0 rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+}
+@media (hover: hover) { .ability-btn:hover:not(:disabled) { background: var(--c-sky); } }
+.ability-btn:active:not(:disabled) { transform: translateY(2px); background: var(--c-sky); }
+.ability-btn, .action-card, .sim-track { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+.ability-btn:disabled { filter: grayscale(0.8) brightness(0.6); cursor: not-allowed; }
+.ability-btn-name { font-family: var(--font-pixel); font-size: 9px; line-height: 1.5; color: var(--c-white); }
+.ability-cd { font-size: 18px; color: var(--c-cyan); }
+.ability-info { margin: 12px 0 0; min-height: 2.4em; }
+
+.battle-log { list-style: none; margin: 0; padding: 0; max-height: 170px; overflow-y: auto; }
+.log { padding: 2px 0; }
+.log--round { color: var(--c-slate); font-family: var(--font-pixel); font-size: 9px; padding-top: 10px; }
+.log--use { color: var(--c-white); }
+.log--hit, .log--dot { color: var(--c-orange); }
+.log--crit { color: var(--c-yellow); }
+.log--miss { color: var(--muted); }
+.log--heal { color: var(--c-lime); }
+.log--status { color: var(--c-cyan); }
+.log--faint, .log--end { color: var(--c-yellow); font-family: var(--font-pixel); font-size: 10px; padding-top: 6px; }
+
+.result { text-align: center; }
+.result h2 { font-size: 22px; }
+.result--win h2 { color: var(--c-lime); }
+.result--loss h2 { color: var(--c-orange); }
+.result .result-list { display: inline-block; text-align: left; margin: 8px 0 18px; }
+
+/* ── Training simulator ────────────────────────── */
+.training-sim h2 { color: var(--c-yellow); }
+.training-sim .stage-frame { margin: 8px 0 16px; box-shadow: none; }
+.sim-track { position: relative; height: 44px; touch-action: none; cursor: pointer; background: var(--c-ink); border: 4px solid var(--border); overflow: hidden; }
+.sim-zone { position: absolute; top: 0; bottom: 0; }
+.sim-zone--good { background: var(--c-teal); }
+.sim-zone--perfect { background: var(--c-lime); }
+.sim-marker { position: absolute; top: -2px; bottom: -2px; width: 6px; margin-left: -3px; background: var(--c-white); box-shadow: 0 0 0 2px var(--border); }
+.sim-pips { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+.sim-pip { width: 18px; height: 18px; border: 3px solid var(--border); background: var(--c-dark); }
+.sim-pip.is-perfect { background: var(--c-lime); }
+.sim-pip.is-good { background: var(--c-teal); }
+.sim-pip.is-miss { background: var(--c-red); }
+.sim-feedback { text-align: center; min-height: 1.4em; font-size: 26px; }
+.sim-feedback[data-grade='perfect'] { color: var(--c-lime); }
+.sim-feedback[data-grade='miss'] { color: var(--c-orange); }
+.sim-feedback .result-list { text-align: left; display: inline-block; margin: 6px 0 0; font-size: 22px; }
+.training-sim .btn-row { justify-content: center; }
+
+/* ── Responsive ────────────────────────────────── */
+@media (max-width: 860px) {
+  .species-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-grid { grid-template-columns: minmax(0, 1fr); }
+  .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Phones: app-style layout with a bottom tab bar on the camp screen. */
+@media (max-width: 640px) {
+  :root { --gap: 12px; --nav-h: 64px; }
+  body { font-size: 20px; }
+  h1 { font-size: 40px; }
+  .panel { padding: 12px; }
+
+  .topbar { padding: 8px 10px; }
+  .brand { font-size: 13px; }
+  .tb-stats { gap: 12px; font-size: 19px; }
+
+  /* Needs as a compact two-column grid so the tabs stay close to the pet */
+  .needs-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 12px; }
+  .needs-panel h3, .needs-panel .chips { grid-column: 1 / -1; }
+  .needs-panel h3 { margin-bottom: 6px; }
+  .needs-panel .bar-row { margin-bottom: 6px; }
+  .needs-panel .bar { height: 12px; border-width: 2px; }
+  .pet-heading { margin: 10px 0 6px; }
+  .pet-name { font-size: 15px; }
+
+  /* Bottom tab bar */
+  .home-screen { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
+  .home-screen .tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    margin: 0;
+    gap: 0;
+    flex-wrap: nowrap;
+    padding: 6px max(6px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+    background: var(--panel);
+    border-top: 4px solid var(--border);
+    box-shadow: 0 -4px 0 rgba(0, 0, 0, 0.3);
+  }
+  .home-screen .tab { flex: 1 1 0; min-width: 0; min-height: 48px; padding: 8px 2px; font-size: 9px; border-width: 2px; }
+  .actions-panel { scroll-margin-top: 12px; }
+  .toast-host { bottom: calc(var(--nav-h) + 12px + env(safe-area-inset-bottom)); }
+
+  .card-grid { gap: 8px; }
+  .action-card { padding: 10px; }
+
+  /* Select: sticky adopt bar */
+  .species-card { padding: 8px; }
+  .species-card h3 { font-size: 10px; }
+  .species-tagline { font-size: 17px; min-height: 0; }
+  .adopt-panel {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    margin: 0 -4px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  /* Battle: fighters side by side, compact */
+  .battle-screen { gap: 10px; }
+  .battle-head h2 { font-size: 14px; }
+  .fighters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .vs { display: none; }
+  .fighter-name { font-size: 18px; line-height: 1.05; }
+  .fighter .bar-head { font-size: 17px; }
+  .effect-chips { min-height: 0; }
+  .chip { font-size: 7px; padding: 4px 5px; }
+  .ability-btn { min-height: 64px; }
+  .ability-info { font-size: 18px; margin-top: 8px; }
+  .battle-log { max-height: 140px; font-size: 19px; }
+  .log-panel h3 { margin-bottom: 6px; }
+}
+
+@media (max-width: 560px) {
+  .stats-cols { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .food-row { grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; }
+  .food-actions { grid-column: 1 / -1; justify-content: flex-end; }
+  .opponent-card { grid-template-columns: 90px minmax(0, 1fr); }
+  .opponent-card > .btn { grid-column: 1 / -1; }
+  .thought { font-size: 17px; max-width: 75%; }
+  .stat-table th, .stat-table td { padding: 4px 3px; }
+}
+
+@media (max-width: 360px) {
+  .species-bars { display: none; }
+  .home-screen .tab { font-size: 8px; }
+}

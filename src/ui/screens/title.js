@@ -1,0 +1,107 @@
+import { h } from '../dom.js';
+import { go } from '../router.js';
+import { game, setPlayer, resetGame } from '../../core/state.js';
+import { CONFIG } from '../../core/config.js';
+import { SPECIES, SPECIES_ORDER } from '../../pets/species.js';
+import { PetStage } from '../components/petStage.js';
+import { confirmButton } from '../components/modal.js';
+import { pick } from '../../core/utils.js';
+
+const DESCRIPTION =
+  'POYA is a pixelated digital pet you raise like a real one. Adopt a wild animal, keep it fed, clean and happy, ' +
+  'condition it in the training yard, then send it into the arena to battle rival pets.';
+
+const FEATURES = [
+  ['Care', 'Your pet gets hungry, tired and dirty, and its mood changes. Neglect it and it gets sick.'],
+  ['Train', 'Timing-based drills raise Attack, HP, Defense, Speed and Crit. Happy pets train better.'],
+  ['Battle', 'Turn-based fights against bots, with each species using its own tactics.'],
+];
+
+let stage = null;
+let hopTimer = 0;
+
+export default {
+  mount(root) {
+    stage = new PetStage({ width: 216, height: 60, background: 'meadow', label: 'Wolf, Gorilla, Grizzly Bear and Eagle' });
+    SPECIES_ORDER.forEach((id, i) => stage.addActor(id, { species: id, x: 30 + i * 52, y: 56, scale: 2 }));
+    hopTimer = setInterval(() => {
+      const id = pick(SPECIES_ORDER);
+      stage.play(id, 'hop');
+      if (Math.random() < 0.4) stage.emote(id, 'note');
+    }, 1400);
+
+    const hasPet = Boolean(game.pet && game.player);
+    root.append(
+      h(
+        'div',
+        { class: 'screen title-screen' },
+        h('header', { class: 'logo' }, h('h1', {}, CONFIG.GAME_TITLE), h('p', { class: 'subtitle' }, CONFIG.GAME_SUBTITLE)),
+        h('div', { class: 'stage-frame' }, stage.canvas),
+        hasPet ? continueBlock() : newPlayerBlock(),
+        h(
+          'section',
+          { class: 'panel about' },
+          h('h2', {}, 'About the game'),
+          h('p', {}, DESCRIPTION),
+          h('ul', { class: 'feature-list' }, FEATURES.map(([t, d]) => h('li', {}, h('strong', {}, t), ' ', d))),
+          h('p', { class: 'muted' }, `Choose from ${SPECIES_ORDER.map((id) => SPECIES[id].name).join(', ')}.`),
+        ),
+      ),
+    );
+  },
+
+  unmount() {
+    clearInterval(hopTimer);
+    stage?.destroy();
+    stage = null;
+  },
+};
+
+function continueBlock() {
+  const pet = game.pet;
+  return h(
+    'section',
+    { class: 'panel start-panel' },
+    h('h2', {}, `Welcome back, ${game.player.username}!`),
+    h('p', {}, `${pet.name} the ${SPECIES[pet.species].name} (Lv ${pet.level}) is waiting for you.`),
+    h(
+      'div',
+      { class: 'btn-row' },
+      h('button', { class: 'btn btn-primary btn-big', onclick: () => go('home') }, 'Continue ▶'),
+      confirmButton('Start over', 'Erase save?', () => {
+        resetGame();
+        go('title');
+      }),
+    ),
+  );
+}
+
+function newPlayerBlock() {
+  const { USERNAME_MIN: min, USERNAME_MAX: max } = CONFIG;
+  const input = h('input', {
+    class: 'input',
+    id: 'username',
+    maxLength: max,
+    placeholder: 'e.g. beastmaster',
+    autocomplete: 'nickname',
+    value: game.player?.username ?? '',
+  });
+  const error = h('p', { class: 'error', 'aria-live': 'polite' });
+
+  function submit(e) {
+    e.preventDefault();
+    const name = input.value.trim();
+    if (name.length < min) return (error.textContent = `Username needs at least ${min} characters.`);
+    if (!/^[\w .-]+$/.test(name)) return (error.textContent = 'Use letters, numbers, spaces, . - or _ only.');
+    setPlayer(name);
+    go('select');
+  }
+
+  return h(
+    'form',
+    { class: 'panel start-panel', onsubmit: submit },
+    h('label', { class: 'field-label', for: 'username' }, 'Username'),
+    h('div', { class: 'input-row' }, input, h('button', { class: 'btn btn-primary', type: 'submit' }, 'Get an animal ▶')),
+    error,
+  );
+}
