@@ -10,6 +10,9 @@ import { EXERCISES } from '../../training/exercises.js';
 import { completeTraining } from '../../training/trainer.js';
 import { getMood } from '../../pets/mood.js';
 import { STAT_LABELS, formatStat } from '../../pets/pet.js';
+import { playSfx } from '../../audio/sfx.js';
+
+const GRADE_SFX = { perfect: 'perfect', good: 'good', miss: 'bad' };
 
 export function openTrainingModal({ pet, exerciseId, onComplete }) {
   const ex = EXERCISES[exerciseId];
@@ -65,6 +68,7 @@ export function openTrainingModal({ pet, exerciseId, onComplete }) {
     pip.classList.add(`is-${grade}`);
     feedback.textContent = GRADES[grade].label;
     feedback.dataset.grade = grade;
+    playSfx(GRADE_SFX[grade]);
     if (grade === 'miss') stage.play('pet', 'hurt');
     else {
       stage.play('pet', 'hop');
@@ -77,6 +81,7 @@ export function openTrainingModal({ pet, exerciseId, onComplete }) {
   function finish() {
     cancelAnimationFrame(raf);
     result = completeTraining(pet, exerciseId, sim.qualities);
+    setTimeout(() => playSfx(result.levels ? 'levelup' : 'trained'), 250);
     const lines = [
       `${STAT_LABELS[result.stat]} ${result.gain > 0 ? '+' : ''}${formatStat(result.stat, result.gain)}`,
       `+${result.xp} XP`,

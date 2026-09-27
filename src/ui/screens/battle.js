@@ -6,7 +6,7 @@ import { go } from '../router.js';
 import { game, saveGame } from '../../core/state.js';
 import { SPECIES } from '../../pets/species.js';
 import { ABILITIES } from '../../combat/abilities.js';
-import { EFFECTS } from '../../combat/effects.js';
+import { EFFECTS, hasEffect } from '../../combat/effects.js';
 import { playRound, cooldownLeft, forfeit } from '../../combat/battle.js';
 import { chooseBotAbility } from '../../combat/bots.js';
 import { applyBattleResult } from '../../combat/arena.js';
@@ -14,8 +14,12 @@ import { formatMoodMult } from '../../pets/mood.js';
 import { NEEDS } from '../../pets/needs.js';
 import { sleep, signed } from '../../core/utils.js';
 import { PetStage } from '../components/petStage.js';
+import { performMove, performImpact, performStatus, isAttackMove } from '../../sprites/moves.js';
 import { createBar } from '../components/statBar.js';
 import { openModal, confirmButton } from '../components/modal.js';
+import { createSoundToggles } from '../components/soundToggles.js';
+import { playSfx } from '../../audio/sfx.js';
+import { setTrack } from '../../audio/music.js';
 
 const EVENT_DELAY = { round: 250, use: 450, hit: 550, crit: 750, miss: 500, dot: 500, heal: 500, status: 500, faint: 700, end: 400, info: 450 };
 const MAX_LOG = 80;
@@ -107,7 +111,7 @@ export default {
       h(
         'div',
         { class: 'screen battle-screen' },
-        h('header', { class: 'battle-head' }, h('h2', {}, 'Arena'), roundEl, forfeitBtn),
+        h('header', { class: 'battle-head' }, h('h2', {}, 'Arena'), roundEl, createSoundToggles(), forfeitBtn),
         h('div', { class: 'fighters' }, cards.player.el, h('span', { class: 'vs' }, 'VS'), cards.enemy.el),
         h('div', { class: 'stage-frame arena-frame' }, stage.canvas),
         moodNote && h('p', { class: 'muted mood-note' }, `${battle.player.name}'s mood modifies their damage by ${moodNote}.`),
@@ -134,17 +138,62 @@ export default {
       forfeitBtn.disabled = state.busy || battle.over;
     }
 
+    const other = (side) => (side === 'player' ? 'enemy' : 'player');
+    let lastMove = null; // ability whose hits we are showing
+    let moveEndsAt = 0; // when the current mover is back in place
+
+    /** Shows one event. Returns how long to wait before the next one (ms). */
     function playEvent(ev) {
       addLog(ev.text, ev.kind);
       cards.player.update(ev.hp.player);
       cards.enemy.update(ev.hp.enemy);
-      if (ev.kind === 'use') stage.play(ev.actor, 'attack');
-      if (['hit', 'crit', 'dot'].includes(ev.kind)) stage.play(ev.target, 'hurt');
-      if (ev.kind === 'crit') stage.emote(ev.target, 'star', 2);
-      if (ev.kind === 'heal') stage.emote(ev.target, 'sparkle', 2);
-      if (ev.kind === 'status' && ev.effect === 'stun') stage.emote(ev.target, 'star');
-      if (ev.kind === 'faint') stage.setFainted(ev.target, true);
-      if (ev.kind === 'end') stage.play(ev.actor, 'hop');
+      playEventSfx(ev);
+      switch (ev.kind) {
+        case 'use': {
+          lastMove = ev.ability;
+          if (isAttackMove(ev.ability)) stage.setHidden(ev.actor, false); // attacking breaks stealth
+          const { contact, duration } = performMove(stage, ev.actor, other(ev.actor), ev.ability);
+          moveEndsAt = performance.now() + duration * 1000;
+          return contact * 1000;
+        }
+        case 'hit':
+        case 'crit':
+          stage.play(ev.target, 'hurt');
+          performImpact(stage, other(ev.target), ev.target, lastMove, { crit: ev.kind === 'crit' });
+          if (ev.kind === 'crit') stage.emote(ev.target, 'star', 2);
+          break;
+        case 'miss':
+          stage.play(ev.target, 'dodge');
+          break;
+        case 'dot':
+          stage.play(ev.target, 'hurt');
+          performStatus(stage, ev.target, ev);
+          break;
+        case 'heal':
+          stage.emote(ev.target, 'sparkle', 2);
+          performStatus(stage, ev.target, ev);
+          break;
+        case 'status':
+          if (ev.effect === 'stealth') stage.setHidden(ev.target, true);
+          if (ev.revealed) stage.setHidden(ev.target, false);
+          if (ev.effect === 'stun') stage.emote(ev.target, 'star');
+          performStatus(stage, ev.target, ev);
+          break;
+        case 'faint':
+          stage.setFainted(ev.target, true);
+          break;
+        case 'end':
+          stage.play(ev.actor, 'hop');
+          break;
+      }
+      return EVENT_DELAY[ev.kind] ?? 450;
+    }
+
+    function playEventSfx(ev) {
+      if (ev.kind === 'use') playSfx('attack');
+      else if (['hit', 'crit', 'miss', 'dot', 'heal', 'faint'].includes(ev.kind)) playSfx(ev.kind);
+      else if (ev.kind === 'status' && ev.effect) playSfx(EFFECTS[ev.effect].kind);
+      else if (ev.kind === 'end') playSfx(ev.actor === 'player' ? 'win' : 'lose');
     }
 
     async function takeTurn(abilityId) {
@@ -155,9 +204,18 @@ export default {
       const events = playRound(battle, abilityId, enemyMove);
       for (const ev of events) {
         if (!state?.alive) return;
-        playEvent(ev);
-        await sleep(EVENT_DELAY[ev.kind] ?? 450);
+        // let the previous mover get back in place before the next move starts
+        if (ev.kind === 'use') await sleep(Math.max(0, moveEndsAt - performance.now()));
+        if (!state?.alive) return;
+        let wait = EVENT_DELAY[ev.kind] ?? 450;
+        try {
+          wait = playEvent(ev);
+        } catch (err) {
+          console.error('[POYA] Battle animation failed:', err); // never let visuals freeze the fight
+        }
+        await sleep(wait);
       }
+      for (const side of ['player', 'enemy']) stage.setHidden(side, hasEffect(battle[side], 'stealth'));
       if (!state?.alive) return;
       state.busy = false;
       cards.player.update();
@@ -167,6 +225,7 @@ export default {
     }
 
     function finish() {
+      setTrack(null); // let the win / lose jingle stand alone
       updateControls();
       const r = applyBattleResult(game, battle);
       saveGame();

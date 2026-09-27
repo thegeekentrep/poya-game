@@ -114,7 +114,7 @@ function makeContext(user, target, emit) {
     reveal: (f) => {
       if (!hasEffect(f, 'stealth')) return;
       removeEffect(f, 'stealth');
-      emit(`${f.name} is revealed!`, 'status', { target: f.side });
+      emit(`${f.name} is revealed!`, 'status', { target: f.side, revealed: true });
     },
     bleed: (f, turns) => {
       const dmg = Math.max(1, Math.round(user.stats.atk * BATTLE_RULES.bleedAtkRatio * (user.passive.dotMult || 1)));

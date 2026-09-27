@@ -6,6 +6,8 @@ import { game, loadGame, saveGame } from './core/state.js';
 import { formatDuration } from './core/utils.js';
 import { NEEDS, NEED_ORDER, tickNeeds, simulateAway } from './pets/needs.js';
 import { initRouter, go, tickScreen } from './ui/router.js';
+import { initAudio } from './audio/audio.js';
+import { setTrack } from './audio/music.js';
 import { toast } from './ui/components/toast.js';
 import title from './ui/screens/title.js';
 import select from './ui/screens/select.js';
@@ -30,7 +32,10 @@ function boot() {
     }
   }
 
-  initRouter(document.getElementById('app'), { title, select, home, battle });
+  initAudio();
+  initRouter(document.getElementById('app'), { title, select, home, battle }, {
+    onNavigate: (screen) => setTrack(screen === 'battle' ? 'battle' : 'camp'),
+  });
   go('title');
   if (report) toast(awayMessage(report), 'info', 6000);
 

@@ -4,10 +4,12 @@
 let root = null;
 let registry = {};
 let current = null;
+let onChange = null;
 
-export function initRouter(rootEl, screens) {
+export function initRouter(rootEl, screens, { onNavigate } = {}) {
   root = rootEl;
   registry = screens;
+  onChange = onNavigate;
 }
 
 export function go(name, params = {}) {
@@ -15,6 +17,7 @@ export function go(name, params = {}) {
   root.replaceChildren();
   current = registry[name];
   if (!current) throw new Error(`Unknown screen: ${name}`);
+  onChange?.(name);
   current.mount(root, params);
   window.scrollTo(0, 0);
 }

@@ -1,14 +1,28 @@
 /**
  * An animated pixel canvas holding one or more pet "actors".
  * Actor x/y is the bottom-centre (feet) in stage pixels.
- * Animations: 'attack' (lunge), 'hurt' (flash + shake), 'hop', and a persistent faint.
+ * Animations: 'attack' (lunge), 'hurt' (flash + shake), 'hop', 'dodge', and a persistent faint.
+ * Custom motions (see animate) and free-form effects (see effect) power battle moves.
  */
 import { SPRITES } from '../../sprites/animals.js';
 import { GLYPHS } from '../../sprites/fx.js';
 import { BACKGROUNDS } from '../../sprites/backgrounds.js';
 import { drawSprite, drawGlyph, spriteSize } from '../../sprites/renderer.js';
 
-const ANIM_DURATION = { attack: 0.35, hurt: 0.45, hop: 0.45 };
+// Built-in animations: motion(p, actor) -> offsets, with p going 0 → 1.
+const ANIMS = {
+  attack: { duration: 0.35, motion: (p, a) => ({ dx: (Math.round(Math.sin(p * Math.PI) * 10) * a.scale * a.dir) / 2 }) },
+  hop: { duration: 0.45, motion: (p, a) => ({ dy: -Math.round(Math.sin(p * Math.PI) * 5) * a.scale }) },
+  hurt: {
+    duration: 0.45,
+    motion: (p, a) => ({ variant: Math.floor(p * 8) % 2 === 0 ? 'flash' : 'normal', dx: (Math.floor(p * 12) % 2 ? 1 : -1) * a.scale }),
+  },
+  dodge: {
+    duration: 0.4,
+    motion: (p, a) => ({ dx: -Math.round(Math.sin(p * Math.PI) * 8) * a.scale * a.dir, dy: -Math.round(Math.sin(p * Math.PI) * 3) * a.scale }),
+  },
+};
+const TRAIL_LENGTH = 4;
 const PARTICLE_LIFE = 1.3;
 
 // One shared animation loop for every stage on screen.
@@ -31,13 +45,18 @@ export class PetStage {
     this.background = background;
     this.actors = new Map();
     this.particles = [];
+    this.effects = [];
+    this.quake = null;
     this.now = performance.now() / 1000;
     stages.add(this);
     if (!rafId) rafId = requestAnimationFrame(loop);
   }
 
   addActor(id, { species, x, y, scale = 1, flip = false }) {
-    this.actors.set(id, { id, species, x, y, scale, flip, sleeping: false, fainted: false, anim: null, phase: Math.random() * 6, nextZ: 0 });
+    this.actors.set(id, {
+      id, species, x, y, scale, flip, dir: flip ? -1 : 1,
+      sleeping: false, fainted: false, hidden: false, anim: null, trail: [], phase: Math.random() * 6, nextZ: 0,
+    });
   }
 
   setSleeping(id, sleeping) {
@@ -50,9 +69,40 @@ export class PetStage {
     if (a) a.fainted = fainted;
   }
 
-  play(id, name) {
+  /** Semi-transparent, for stealth. */
+  setHidden(id, hidden) {
     const a = this.actors.get(id);
-    if (a && ANIM_DURATION[name]) a.anim = { name, start: this.now };
+    if (a) a.hidden = hidden;
+  }
+
+  play(id, name) {
+    if (ANIMS[name]) this.animate(id, ANIMS[name].motion, ANIMS[name].duration);
+  }
+
+  /**
+   * Runs a custom motion on an actor. motion(p, actor) returns any of
+   * { dx, dy, angle, sx, sy, alpha, variant, trail }.
+   */
+  animate(id, motion, duration, { delay = 0 } = {}) {
+    const a = this.actors.get(id);
+    if (a) a.anim = { motion, duration, start: this.now + delay };
+  }
+
+  /** Where an actor stands: feet (x, y), body centre (cx, cy), size and facing. */
+  actorBox(id) {
+    const a = this.actors.get(id);
+    if (!a) return null;
+    const { w, h } = spriteSize(SPRITES[a.species]);
+    return { x: a.x, y: a.y, cx: a.x, cy: a.y - (h * a.scale) / 2, w: w * a.scale, h: h * a.scale, dir: a.dir, scale: a.scale };
+  }
+
+  /** Draws draw(ctx, p, age) every frame for `duration` seconds, on top of the actors. */
+  effect(draw, duration, { delay = 0 } = {}) {
+    this.effects.push({ draw, duration, start: this.now + delay });
+  }
+
+  shake(power = 2, duration = 0.3, { delay = 0 } = {}) {
+    this.quake = { power, duration, start: this.now + delay };
   }
 
   emote(id, glyphName, count = 1) {
@@ -81,9 +131,31 @@ export class PetStage {
     const { ctx, canvas } = this;
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    const q = this.quake;
+    if (q && t >= q.start) {
+      const k = 1 - (t - q.start) / q.duration;
+      if (k <= 0) this.quake = null;
+      else ctx.translate(Math.round((Math.random() - 0.5) * 2 * q.power * k), Math.round((Math.random() - 0.5) * 2 * q.power * k));
+    }
     if (this.background) BACKGROUNDS[this.background](ctx, canvas.width, canvas.height, t);
-    for (const actor of this.actors.values()) this.drawActor(actor, t);
+    // The actor that is moving is drawn last, so an attacker passes in front of its target.
+    const order = [...this.actors.values()].sort((a, b) => Number(Boolean(a.anim)) - Number(Boolean(b.anim)));
+    for (const actor of order) this.drawActor(actor, t);
+    this.drawEffects(t);
     this.drawParticles(t);
+    ctx.restore();
+  }
+
+  drawEffects(t) {
+    this.effects = this.effects.filter((e) => t - e.start < e.duration);
+    for (const e of this.effects) {
+      const age = t - e.start;
+      if (age < 0) continue;
+      this.ctx.save();
+      e.draw(this.ctx, age / e.duration, age);
+      this.ctx.restore();
+    }
   }
 
   drawActor(a, t) {
@@ -93,6 +165,7 @@ export class PetStage {
     let dx = 0;
     let dy = 0;
     let variant = 'normal';
+    let pose = {};
 
     if (a.sleeping) {
       variant = 'blink';
@@ -106,24 +179,38 @@ export class PetStage {
       if ((t + a.phase) % 3.4 < 0.14) variant = 'blink';
     }
 
-    if (a.anim) {
-      const p = (t - a.anim.start) / ANIM_DURATION[a.anim.name];
+    if (a.anim && t >= a.anim.start) {
+      const p = (t - a.anim.start) / a.anim.duration;
       if (p >= 1) a.anim = null;
-      else if (a.anim.name === 'attack') dx = Math.round(Math.sin(p * Math.PI) * 10) * s * (a.flip ? -1 : 1) / 2;
-      else if (a.anim.name === 'hop') dy = -Math.round(Math.sin(p * Math.PI) * 5) * s;
-      else if (a.anim.name === 'hurt') {
-        variant = Math.floor(p * 8) % 2 === 0 ? 'flash' : 'normal';
-        dx = (Math.floor(p * 12) % 2 ? 1 : -1) * s;
+      else {
+        pose = a.anim.motion(p, a) || {};
+        dx = pose.dx ?? 0;
+        dy += pose.dy ?? 0;
+        variant = pose.variant ?? variant;
       }
     }
 
-    // shadow
-    this.ctx.fillStyle = 'rgba(11, 12, 20, 0.35)';
-    this.ctx.fillRect(Math.round(a.x - w * s * 0.35), a.y - s, Math.round(w * s * 0.7), 2 * s);
+    // shadow stays on the ground and shrinks as the actor leaves it
+    const lift = Math.min(1, Math.max(0, -dy) / 40);
+    const shadowW = Math.round(w * s * 0.7 * (1 - lift * 0.6));
+    this.ctx.fillStyle = `rgba(11, 12, 20, ${0.35 * (1 - lift * 0.5)})`;
+    this.ctx.fillRect(Math.round(a.x + dx - shadowW / 2), a.y - s, shadowW, 2 * s);
 
-    const alpha = a.fainted ? 0.35 : 1;
+    let alpha = a.fainted ? 0.35 : a.hidden ? 0.3 + 0.08 * Math.sin(t * 6) : 1;
+    if (pose.alpha != null) alpha *= pose.alpha;
     const faintDrop = a.fainted ? 2 * s : 0;
-    drawSprite(this.ctx, sprite, a.x - (w * s) / 2 + dx, a.y - h * s + dy + faintDrop, { scale: s, flip: a.flip, variant, alpha });
+    const drawX = a.x - (w * s) / 2 + dx;
+    const drawY = a.y - h * s + dy + faintDrop;
+    const opts = { scale: s, flip: a.flip, alpha, angle: (pose.angle ?? 0) * a.dir, sx: pose.sx ?? 1, sy: pose.sy ?? 1 };
+
+    // afterimages for fast moves
+    if (pose.trail) {
+      a.trail.forEach((g, i) => drawSprite(this.ctx, sprite, g.x, g.y, { ...opts, angle: g.angle, alpha: alpha * 0.12 * (i + 1) }));
+      a.trail.push({ x: drawX, y: drawY, angle: opts.angle });
+      if (a.trail.length > TRAIL_LENGTH) a.trail.shift();
+    } else if (a.trail.length) a.trail = [];
+
+    drawSprite(this.ctx, sprite, drawX, drawY, { ...opts, variant });
   }
 
   drawParticles(t) {

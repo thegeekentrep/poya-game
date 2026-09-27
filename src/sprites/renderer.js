@@ -30,21 +30,21 @@ function rasterise(sprite, variant) {
   return canvas;
 }
 
-/** Draws a sprite with its top-left at (x, y). */
-export function drawSprite(ctx, sprite, x, y, { scale = 1, flip = false, variant = 'normal', alpha = 1 } = {}) {
+/**
+ * Draws a sprite with its top-left at (x, y).
+ * `angle` (radians, clockwise) and `sx` / `sy` (stretch) pivot around the feet.
+ */
+export function drawSprite(ctx, sprite, x, y, { scale = 1, flip = false, variant = 'normal', alpha = 1, angle = 0, sx = 1, sy = 1 } = {}) {
   const img = rasterise(sprite, variant);
   const w = img.width * scale;
   const h = img.height * scale;
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.imageSmoothingEnabled = false;
-  if (flip) {
-    ctx.translate(Math.round(x) + w, Math.round(y));
-    ctx.scale(-1, 1);
-    ctx.drawImage(img, 0, 0, w, h);
-  } else {
-    ctx.drawImage(img, Math.round(x), Math.round(y), w, h);
-  }
+  ctx.translate(Math.round(x + w / 2), Math.round(y + h));
+  if (angle) ctx.rotate(angle);
+  ctx.scale(flip ? -sx : sx, sy);
+  ctx.drawImage(img, -w / 2, -h, w, h);
   ctx.restore();
 }
 

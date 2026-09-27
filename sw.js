@@ -4,7 +4,7 @@
  * - Google Fonts: cache first.
  * Bump CACHE when you want to force old caches out.
  */
-const CACHE = 'poya-v1';
+const CACHE = 'poya-v2';
 const PRECACHE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {
@@ -40,7 +40,9 @@ self.addEventListener('fetch', (event) => {
 
   if (url.origin !== self.location.origin) return;
   event.respondWith(
-    fetch(request)
+    // no-cache: always revalidate with the server, so the browser's HTTP cache
+    // can never hand back an old module next to newer ones.
+    fetch(request, { cache: 'no-cache' })
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();
