@@ -5,7 +5,7 @@
  * Event: { text, kind, actor?, target?, amount?, hp: { player, enemy } }
  * kind : round | use | hit | crit | miss | dot | heal | status | faint | end
  */
-import { getStats, getSpecies } from '../pets/pet.js';
+import { getStats, getSpecies, getLoadout } from '../pets/pet.js';
 import { ABILITIES } from './abilities.js';
 import { EFFECTS, EFFECT_TUNING as T, addEffect, removeEffect, hasEffect } from './effects.js';
 import { clamp, rand } from '../core/utils.js';
@@ -38,7 +38,7 @@ export function createFighter(pet, side, moodMult = 1) {
     critMult: stats.critMult,
     passive: sp.passive,
     moodMult,
-    abilities: [...sp.abilities],
+    abilities: getLoadout(pet),
     cooldowns: {},
     effects: {},
   };
@@ -51,7 +51,7 @@ export function createBattle(player, enemy, meta = {}) {
 export const cooldownLeft = (f, abilityId) => f.cooldowns[abilityId] || 0;
 export const isReady = (f, abilityId) => cooldownLeft(f, abilityId) <= 0;
 export const opponentOf = (b, f) => (f === b.player ? b.enemy : b.player);
-export const speedOf = (f) => f.stats.spd * (hasEffect(f, 'rooted') ? T.rootedSpeedMult : 1);
+export const speedOf = (f) => f.stats.spd * (hasEffect(f, 'rooted') ? T.rootedSpeedMult : 1) * (f.effects.haste?.mult ?? 1);
 
 export function playRound(b, playerMove, enemyMove) {
   const events = [];
@@ -116,6 +116,30 @@ function makeContext(user, target, emit) {
       removeEffect(f, 'stealth');
       emit(`${f.name} is revealed!`, 'status', { target: f.side, revealed: true });
     },
+    /** Several separate attacks; stops early if the target faints. Returns total damage. */
+    multiHit: (count, opts = {}) => {
+      let total = 0;
+      for (let i = 0; i < count && target.hp > 0; i++) total += performAttack(user, target, opts, emit).damage || 0;
+      return total;
+    },
+    heal: (f, amount) => {
+      const heal = Math.min(Math.round(amount), f.maxHp - f.hp);
+      if (heal <= 0) return;
+      f.hp += heal;
+      emit(`${f.name} recovers ${heal} HP.`, 'heal', { target: f.side, amount: heal });
+    },
+    /** Removes every debuff from a fighter. */
+    cleanse: (f) => {
+      const debuffs = Object.keys(f.effects).filter((id) => EFFECTS[id].kind === 'debuff');
+      debuffs.forEach((id) => removeEffect(f, id));
+      if (debuffs.length) emit(`${f.name} shakes off ${debuffs.map((id) => EFFECTS[id].label).join(', ')}!`, 'status', { target: f.side });
+    },
+    /** Strips every buff from a fighter. */
+    dispel: (f) => {
+      const buffs = Object.keys(f.effects).filter((id) => EFFECTS[id].kind === 'buff');
+      buffs.forEach((id) => removeEffect(f, id));
+      if (buffs.length) emit(`${f.name} loses ${buffs.map((id) => EFFECTS[id].label).join(', ')}!`, 'status', { target: f.side, revealed: buffs.includes('stealth') });
+    },
     bleed: (f, turns) => {
       const dmg = Math.max(1, Math.round(user.stats.atk * BATTLE_RULES.bleedAtkRatio * (user.passive.dotMult || 1)));
       ctx.addEffect(f, 'bleed', turns, { dmg });
@@ -147,8 +171,8 @@ function critChance(att, opts) {
 
 function baseDamage(att, def, opts) {
   const R = BATTLE_RULES;
-  const atk = att.stats.atk * (att.effects.weaken?.mult ?? 1) * att.moodMult;
-  const defense = def.stats.def * (def.effects.guard?.mult ?? 1) * (1 - (opts.armorPen || 0));
+  const atk = att.stats.atk * (att.effects.weaken?.mult ?? 1) * (att.effects.empower?.mult ?? 1) * att.moodMult;
+  const defense = def.stats.def * (def.effects.guard?.mult ?? 1) * (def.effects.expose?.mult ?? 1) * (1 - (opts.armorPen || 0));
   return atk * (opts.power ?? 1) * R.damageScale * (R.defenseConstant / (R.defenseConstant + defense));
 }
 

@@ -5,7 +5,7 @@ import { createFighter, createBattle } from './battle.js';
 import { DIFFICULTIES } from './bots.js';
 import { applyNeedDeltas, isAsleep } from '../pets/needs.js';
 import { getMood } from '../pets/mood.js';
-import { addXp } from '../pets/pet.js';
+import { addXp, movesLearnedSince } from '../pets/pet.js';
 import { DIFFICULTY_ORDER } from './bots.js';
 
 /**
@@ -90,5 +90,6 @@ export function applyBattleResult(game, battle) {
   game.coins += coins;
   applyNeedDeltas(pet, needs);
   const levels = addXp(pet, xp);
-  return { won, coins, xp, levels, needs, level: pet.level, trophies, unlocked };
+  const learned = movesLearnedSince(pet, pet.level - levels);
+  return { won, coins, xp, levels, learned, needs, level: pet.level, trophies, unlocked };
 }

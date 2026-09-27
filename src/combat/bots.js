@@ -1,13 +1,13 @@
 /**
  * Bot opponents: generation by difficulty, plus the move-picking AI.
  */
-import { createPet } from '../pets/pet.js';
+import { createPet, knownMoves, LOADOUT_SIZE } from '../pets/pet.js';
 import { SPECIES_ORDER } from '../pets/species.js';
-import { EXERCISES, EXERCISE_ORDER } from '../training/exercises.js';
-import { trainingCap } from '../training/trainer.js';
+import { STAT_GAIN } from '../training/exercises.js';
+import { statCap } from '../training/trainer.js';
 import { ABILITIES } from './abilities.js';
 import { isReady } from './battle.js';
-import { pick, rand, randInt } from '../core/utils.js';
+import { pick, rand, randInt, shuffle } from '../core/utils.js';
 
 export const DIFFICULTIES = {
   easy: { label: 'Rookie', desc: 'A younger, lightly trained rival.', levelOffset: -1, levelJitter: 0, trainFactor: 0.15, moodMult: 0.95, rewardMult: 0.7 },
@@ -25,9 +25,11 @@ export function generateBot(playerPet, difficultyId = 'normal') {
   const d = DIFFICULTIES[difficultyId];
   const bot = createPet(pick(SPECIES_ORDER), pick(BOT_NAMES));
   bot.level = Math.max(1, playerPet.level + d.levelOffset + randInt(0, d.levelJitter));
-  for (const exId of EXERCISE_ORDER) {
-    bot.trained[EXERCISES[exId].stat] = trainingCap(bot, exId) * d.trainFactor * rand(0.6, 1);
+  for (const stat of Object.keys(STAT_GAIN)) {
+    bot.trained[stat] = statCap(bot, stat) * d.trainFactor * rand(0.6, 1);
   }
+  const [basic, ...rest] = knownMoves(bot);
+  bot.loadout = [basic, ...shuffle(rest).slice(0, LOADOUT_SIZE - 1)];
   bot.isBot = true;
   return bot;
 }

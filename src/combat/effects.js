@@ -4,7 +4,7 @@
  */
 export const EFFECTS = {
   stealth: { label: 'Stealth', kind: 'buff', onApply: 'melts into the shadows!', desc: 'Normal attacks miss. Next attack is a guaranteed critical.' },
-  focus: { label: 'Scouting', kind: 'buff', onApply: 'soars high and scouts the field!', desc: '+20% accuracy, +15% evasion, +20% crit chance.' },
+  focus: { label: 'Focused', kind: 'buff', onApply: 'zeroes in on the target!', desc: '+20% accuracy, +15% evasion, +20% crit chance.' },
   guard: { label: 'Guard', kind: 'buff', onApply: 'braces up! (DEF up)', desc: 'Defense increased.' },
   regen: { label: 'Regen', kind: 'buff', onApply: 'digs in and starts recovering.', desc: 'Heals at the end of each turn.' },
   stun: { label: 'Stunned', kind: 'debuff', onApply: 'is stunned!', desc: 'Loses the next action.' },
@@ -12,6 +12,9 @@ export const EFFECTS = {
   marked: { label: 'Tracked', kind: 'debuff', onApply: 'has been tracked by scent!', desc: 'Cannot hide or evade. Takes +20% damage.' },
   weaken: { label: 'Weakened', kind: 'debuff', onApply: 'is intimidated! (ATK down)', desc: 'Attack reduced.' },
   blind: { label: 'Blinded', kind: 'debuff', onApply: 'is blinded!', desc: '−30% accuracy.' },
+  empower: { label: 'Empowered', kind: 'buff', onApply: 'is fired up! (ATK up)', desc: 'Attack increased.' },
+  haste: { label: 'Haste', kind: 'buff', onApply: 'picks up speed! (SPD up)', desc: 'Speed increased.' },
+  expose: { label: 'Exposed', kind: 'debuff', onApply: 'is left open! (DEF down)', desc: 'Defense reduced.' },
   rooted: { label: 'Grappled', kind: 'debuff', onApply: 'is pinned down!', desc: 'Speed halved. Cannot hide or evade.' },
 };
 

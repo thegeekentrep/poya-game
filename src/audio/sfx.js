@@ -1,7 +1,7 @@
 /**
  * Retro sound effects, synthesized on the fly (no asset files).
  */
-import { getAudio, tone, noise } from './audio.js';
+import { getAudio, tone, noise, voice } from './audio.js';
 
 const notes = (out, freqs, step, opts = {}) =>
   freqs.forEach((f, i) => tone(out, { from: f, start: i * step, dur: step * 1.4, ...opts }));
@@ -32,15 +32,47 @@ const SOUNDS = {
 
   // ── Feeding ──
   coin: (out) => notes(out, [988, 1319], 0.06, { vol: 0.1 }),
-  eat: (out) => [0, 0.12, 0.24].forEach((start) => noise(out, { start, dur: 0.07, vol: 0.12, filter: 2000 })),
-  yum: (out) => {
-    SOUNDS.eat(out);
-    notes(out, [659, 784, 1047], 0.08, { type: 'triangle', vol: 0.12, start: 0.3 });
+  cuddle: (out) => notes(out, [784, 988], 0.07, { type: 'triangle', vol: 0.08 }),
+  // "hn-HMPH": a short lead-in grunt, then a longer one that rises and falls, then a huff of breath.
+  // pitch: the animal's voice (Hz); irritation 0..1 makes it louder, higher and sharper.
+  grunt: (out, { pitch = 160, irritation = 0 } = {}) => {
+    const p = pitch * (1 + irritation * 0.15) * (0.94 + Math.random() * 0.12); // never quite the same twice
+    const mouth = 520 + irritation * 260;
+    voice(out, { pitch: [p * 0.95, p, p * 0.9], mouth, dur: 0.08, vol: 0.1 + irritation * 0.03 });
+    voice(out, { pitch: [p * 1.05, p * 1.25, p * 0.75], mouth: mouth * 1.2, start: 0.11, dur: 0.2, vol: 0.14 + irritation * 0.04 });
+    noise(out, { start: 0.28, dur: 0.1, vol: 0.05, filter: 1400 });
   },
-  yuck: (out) => {
-    SOUNDS.eat(out);
-    tone(out, { type: 'sawtooth', from: 220, to: 150, start: 0.3, dur: 0.25, vol: 0.08 });
+  // An annoyed pet: a low, gravelly rumble that swells, then (unless `short`) a sharp snarl.
+  growl: (out, { pitch = 160, short = false } = {}) => {
+    const p = pitch * (0.95 + Math.random() * 0.1);
+    const low = Math.max(p * 0.45, 60); // floor keeps big animals audible on phone speakers
+    const rumble = short ? 0.35 : 0.55;
+    voice(out, { pitch: [low, low * 1.2, low * 0.92], mouth: 380, dur: rumble, vol: 0.2, rasp: 26, raspDepth: 0.85 });
+    voice(out, { pitch: [low / 2, low * 0.6, low * 0.46], mouth: 260, dur: rumble, vol: 0.14, type: 'square', rasp: 26 }); // chest
+    noise(out, { dur: rumble, vol: 0.05, filter: 500 }); // breath through bared teeth
+    if (short) return;
+    voice(out, { pitch: [p * 0.8, p * 1.35, p * 0.55], mouth: 1500, start: rumble - 0.06, dur: 0.3, vol: 0.22, rasp: 38, raspDepth: 0.6 });
+    noise(out, { start: rumble - 0.05, dur: 0.18, vol: 0.09, filter: 2400, type: 'bandpass' });
   },
+  brush: (out) => noise(out, { dur: 0.16, vol: 0.06, filter: 3500, type: 'bandpass' }),
+  pop: (out) => {
+    tone(out, { type: 'sine', from: 700, to: 1600, dur: 0.07, vol: 0.16 });
+    [0.05, 0.1, 0.16].forEach((start) => tone(out, { type: 'sine', from: 900 + Math.random() * 900, to: 2000, start, dur: 0.04, vol: 0.09 }));
+  },
+  // lathering fizz: a few tiny random-pitched bubble pops over a soft hiss
+  bubbles: (out) => {
+    noise(out, { dur: 0.16, vol: 0.035, filter: 5000, type: 'highpass' });
+    for (let i = 0; i < 3; i++) {
+      const from = 800 + Math.random() * 1400;
+      tone(out, { type: 'sine', from, to: from * 1.6, start: Math.random() * 0.14, dur: 0.035, vol: 0.07 });
+    }
+  },
+  pounce: (out) => noise(out, { dur: 0.22, vol: 0.08, filter: 1800, type: 'bandpass' }),
+  catch: (out) => notes(out, [784, 1047, 1319], 0.06, { vol: 0.11 }),
+  chomp: (out) => noise(out, { dur: 0.06, vol: 0.12, filter: 2000 }),
+  delight: (out) => notes(out, [659, 784, 1047], 0.08, { type: 'triangle', vol: 0.12 }),
+  content: (out) => notes(out, [523, 659], 0.08, { type: 'triangle', vol: 0.1 }),
+  grimace: (out) => tone(out, { type: 'sawtooth', from: 220, to: 150, dur: 0.25, vol: 0.08 }),
   medicine: (out) => notes(out, [523, 494, 523, 784], 0.08, { type: 'triangle', vol: 0.12 }),
   error: (out) => notes(out, [196, 165], 0.09, { vol: 0.08 }),
 
@@ -55,7 +87,8 @@ const SOUNDS = {
   levelup: (out) => notes(out, [523, 659, 784, 1047, 1319, 1568], 0.07, { vol: 0.13 }),
 };
 
-export function playSfx(name) {
+/** opts go to sounds that take them, e.g. playSfx('grunt', { pitch, irritation }). */
+export function playSfx(name, opts) {
   const audio = getAudio();
-  if (audio && SOUNDS[name]) SOUNDS[name](audio.sfx);
+  if (audio && SOUNDS[name]) SOUNDS[name](audio.sfx, opts);
 }

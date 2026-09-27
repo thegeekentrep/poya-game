@@ -7,6 +7,9 @@ import { game, saveGame } from '../../core/state.js';
 import { NEEDS, NEED_ORDER } from '../../pets/needs.js';
 import { getMood, getThought, formatMoodMult } from '../../pets/mood.js';
 import { getSpecies, xpToNext } from '../../pets/pet.js';
+import { ABILITIES } from '../../combat/abilities.js';
+import { playFeeding } from '../components/feedAnim.js';
+import { attachCuddle } from '../components/cuddle.js';
 import { PetStage } from '../components/petStage.js';
 import { createBar } from '../components/statBar.js';
 import { createTopbar } from '../components/topbar.js';
@@ -48,6 +51,7 @@ export default {
 
     const stage = new PetStage({ width: 128, height: 80, background: 'meadow', label: `${pet.name} the ${sp.name}` });
     stage.addActor('pet', { species: pet.species, x: 64, y: 72 });
+    const cuddle = attachCuddle(stage, 'pet', pet, { toast, onChange: () => refresh() });
 
     const topbar = createTopbar();
     const thought = h('div', { class: 'thought', 'aria-live': 'polite' });
@@ -55,6 +59,7 @@ export default {
     const metaEl = h('p', { class: 'pet-meta muted' });
     const moodChip = h('span', { class: 'chip' });
     const xpBar = createBar({ label: 'XP', color: 'var(--c-cyan)' });
+    xpBar.el.classList.add('xp-row');
     const needBars = Object.fromEntries(NEED_ORDER.map((id) => [id, createBar({ label: NEEDS[id].label, color: NEEDS[id].color, warnLow: true })]));
     const buffs = h('div', { class: 'chips' });
 
@@ -71,9 +76,11 @@ export default {
       toast,
       refresh: () => refresh(),
       react: (kind) => react(kind),
-      onLevelUp: (levels) => {
+      feed: (foodId, outcome) => playFeeding(stage, 'pet', foodId, outcome),
+      onLevelUp: (levels, learned = []) => {
         if (!levels) return;
-        toast(`Level up! ${pet.name} is now Lv ${pet.level}!`, 'good', 3500);
+        const moves = learned.length ? ` Learned ${learned.map((id) => ABILITIES[id].name).join(', ')}!` : '';
+        toast(`Level up! ${pet.name} is now Lv ${pet.level}!${moves}`, 'good', 4500);
         react('level');
       },
     };
@@ -89,12 +96,14 @@ export default {
       tabBody.replaceChildren(panel.el);
     }
 
-    // On phones the tab bar is pinned to the bottom, so scroll the panel into view.
+    // On phones the tab bar is pinned to the bottom: scroll the panel into view,
+    // but only if part of it is hidden (Care and Feed fit on one screen).
     function revealTabBody() {
       if (!window.matchMedia('(max-width: 640px)').matches) return;
       const panelEl = tabBody.closest('.actions-panel');
-      const top = panelEl.getBoundingClientRect().top;
-      if (top > 80 || top < 0) panelEl.scrollIntoView({ block: 'start' });
+      const { top, bottom } = panelEl.getBoundingClientRect();
+      const tabsTop = tabList.getBoundingClientRect().top;
+      if (top < 0 || bottom > tabsTop) panelEl.scrollIntoView({ block: 'start' });
     }
 
     function react(kind) {
@@ -158,6 +167,7 @@ export default {
       },
       destroy: () => {
         panel?.destroy?.();
+        cuddle.destroy();
         stage.destroy();
       },
     };

@@ -18,14 +18,14 @@ export function createBattlePanel(ctx) {
 
   if (!lastDifficulty || !isTierUnlocked(game.record, lastDifficulty)) lastDifficulty = highestUnlocked(game.record);
 
-  const status = h('p', { class: 'panel-note' });
+  const status = h('p', { class: 'panel-note battle-status' });
   const trophyNote = h('p', { class: 'trophy-note' });
   const trophyBar = createBar({ label: 'Next tier', color: 'var(--c-yellow)', compact: true });
   const diffButtons = DIFFICULTY_ORDER.map((id) =>
     h('button', { class: 'seg', 'aria-pressed': 'false', onclick: () => { lastDifficulty = id; bot = null; render(); } }, DIFFICULTIES[id].label),
   );
-  const diffDesc = h('p', { class: 'muted' });
   const findBtn = h('button', { class: 'btn', onclick: () => { bot = generateBot(game.pet, lastDifficulty); render(); } }, 'Find opponent');
+  const costText = `Entering the arena costs ${describeEffects(ARENA_RULES.cost)}. Wins earn trophies, losses cost ${TROPHY_RULES.loss}.`;
   const preview = h('div', { class: 'opponent' });
 
   const el = h(
@@ -35,9 +35,6 @@ export function createBattlePanel(ctx) {
     trophyNote,
     trophyBar.el,
     h('div', { class: 'seg-group', role: 'group', 'aria-label': 'Difficulty' }, diffButtons),
-    diffDesc,
-    h('p', { class: 'muted' }, `Entering the arena costs ${describeEffects(ARENA_RULES.cost)}. Wins earn trophies, losses cost ${TROPHY_RULES.loss}.`),
-    findBtn,
     preview,
   );
 
@@ -49,7 +46,7 @@ export function createBattlePanel(ctx) {
       const active = id === lastDifficulty;
       b.disabled = !open;
       b.classList.toggle('is-locked', !open);
-      b.textContent = open ? DIFFICULTIES[id].label : `${DIFFICULTIES[id].label} · ${TROPHY_RULES.unlock[id]}`;
+      b.replaceChildren(DIFFICULTIES[id].label, open ? '' : h('span', { class: 'seg-lock' }, ` · ${TROPHY_RULES.unlock[id]}`));
       b.title = open ? `Win: +${TROPHY_RULES.win[id]} trophies · Loss: −${TROPHY_RULES.loss}` : `Locked: reach ${TROPHY_RULES.unlock[id]} trophies`;
       b.classList.toggle('is-active', active);
       b.setAttribute('aria-pressed', String(active));
@@ -60,24 +57,35 @@ export function createBattlePanel(ctx) {
       : `Trophies: ${rec.trophies}. Every tier is unlocked!`;
     trophyBar.el.hidden = !next;
     if (next) {
+      trophyBar.setLabel(`Trophies → ${DIFFICULTIES[next.id].label}`);
       const from = TROPHY_RULES.unlock[DIFFICULTY_ORDER[DIFFICULTY_ORDER.indexOf(next.id) - 1]];
       trophyBar.set(rec.bestTrophies - from, next.at - from, `${rec.bestTrophies}/${next.at}`);
     }
-    diffDesc.textContent = DIFFICULTIES[lastDifficulty].desc;
-    findBtn.textContent = bot ? 'Reroll opponent' : 'Find opponent';
+    findBtn.textContent = bot ? 'Reroll' : 'Find opponent';
 
     previewStage?.destroy();
     previewStage = null;
     fightBtn = null;
-    preview.replaceChildren();
-    if (!bot) return update();
+    if (!bot) {
+      // nobody picked yet: what this tier is like, what it costs, and the button to find someone
+      preview.replaceChildren(
+        h(
+          'div',
+          { class: 'opponent-card is-empty' },
+          h('div', { class: 'opponent-portrait opponent-unknown', 'aria-hidden': 'true' }, '?'),
+          h('div', { class: 'opponent-info' }, h('p', {}, DIFFICULTIES[lastDifficulty].desc), h('p', { class: 'muted opponent-cost' }, costText)),
+          h('div', { class: 'opponent-actions' }, findBtn),
+        ),
+      );
+      return update();
+    }
 
     const sp = SPECIES[bot.species];
     const rewards = estimateRewards(bot.level, lastDifficulty);
     previewStage = new PetStage({ width: 80, height: 68, label: `${bot.name} the ${sp.name}` });
     previewStage.addActor('bot', { species: bot.species, x: 40, y: 65, flip: true });
     fightBtn = h('button', { class: 'btn btn-danger btn-big', onclick: fight }, 'Fight!');
-    preview.append(
+    preview.replaceChildren(
       h(
         'div',
         { class: 'opponent-card' },
@@ -87,10 +95,11 @@ export function createBattlePanel(ctx) {
           { class: 'opponent-info' },
           h('h3', {}, bot.name),
           h('p', {}, `Lv ${bot.level} ${sp.name} · ${sp.role}`),
-          h('p', { class: 'muted' }, sp.tagline),
-          h('p', { class: 'reward' }, `Win: +${rewards.coins}c · +${rewards.xp} XP · +${TROPHY_RULES.win[lastDifficulty]} trophies`),
+          h('p', { class: 'muted opponent-tagline' }, sp.tagline),
+          h('p', { class: 'reward' }, `Win: +${rewards.coins}c · +${rewards.xp} XP · +${TROPHY_RULES.win[lastDifficulty]} `, h('span', { class: 'reward-trophies' }, 'trophies')),
+          h('p', { class: 'muted opponent-cost' }, costText),
         ),
-        fightBtn,
+        h('div', { class: 'opponent-actions' }, findBtn, fightBtn),
       ),
     );
     update();

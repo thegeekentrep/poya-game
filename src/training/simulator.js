@@ -22,8 +22,10 @@ export const SIM_TUNING = {
 };
 
 export class TrainingSim {
-  constructor({ reps = TRAINING_RULES.reps, moodMult = 1 } = {}) {
+  /** load: the station's mastery tier; each tier speeds the marker up (progressive overload). */
+  constructor({ reps = TRAINING_RULES.reps, moodMult = 1, load = 0 } = {}) {
     this.reps = reps;
+    this.load = load;
     this.moodMult = moodMult;
     this.results = [];
     this.pos = 0;
@@ -32,7 +34,7 @@ export class TrainingSim {
   }
 
   get speed() {
-    return SIM_TUNING.baseSpeed + this.results.length * SIM_TUNING.speedPerRep;
+    return (SIM_TUNING.baseSpeed + this.results.length * SIM_TUNING.speedPerRep) * (1 + this.load * TRAINING_RULES.overloadSpeed);
   }
 
   get done() {

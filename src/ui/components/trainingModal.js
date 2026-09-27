@@ -7,19 +7,23 @@ import { openModal } from './modal.js';
 import { PetStage } from './petStage.js';
 import { TrainingSim, GRADES } from '../../training/simulator.js';
 import { EXERCISES } from '../../training/exercises.js';
-import { completeTraining } from '../../training/trainer.js';
+import { createTrainingScene, SCENE_SIZE } from './trainingScenes.js';
+import { completeTraining, mastery, learnTrainingMove } from '../../training/trainer.js';
+import { ABILITIES } from '../../combat/abilities.js';
 import { getMood } from '../../pets/mood.js';
 import { STAT_LABELS, formatStat } from '../../pets/pet.js';
+import { learnedLine } from '../moveText.js';
 import { playSfx } from '../../audio/sfx.js';
 
 const GRADE_SFX = { perfect: 'perfect', good: 'good', miss: 'bad' };
 
 export function openTrainingModal({ pet, exerciseId, onComplete }) {
   const ex = EXERCISES[exerciseId];
-  const sim = new TrainingSim({ moodMult: getMood(pet).mult });
+  const load = mastery(pet, exerciseId).tier;
+  const sim = new TrainingSim({ moodMult: getMood(pet).mult, load });
 
-  const stage = new PetStage({ width: 192, height: 88, background: 'meadow', label: `${pet.name} training` });
-  stage.addActor('pet', { species: pet.species, x: 96, y: 80 });
+  const stage = new PetStage({ ...SCENE_SIZE, label: `${pet.name} training at the ${ex.name}` });
+  const scene = createTrainingScene(exerciseId, stage, pet.species);
 
   const good = h('div', { class: 'sim-zone sim-zone--good' });
   const perfect = h('div', { class: 'sim-zone sim-zone--perfect' });
@@ -34,7 +38,7 @@ export function openTrainingModal({ pet, exerciseId, onComplete }) {
     'div',
     { class: 'training-sim' },
     h('h2', {}, `${ex.name} training`),
-    h('p', { class: 'muted' }, ex.desc),
+    h('p', { class: 'muted' }, ex.desc, load ? ` Overload Lv ${load}: the bar moves faster.` : ''),
     h('div', { class: 'stage-frame' }, stage.canvas),
     track,
     pips,
@@ -69,11 +73,7 @@ export function openTrainingModal({ pet, exerciseId, onComplete }) {
     feedback.textContent = GRADES[grade].label;
     feedback.dataset.grade = grade;
     playSfx(GRADE_SFX[grade]);
-    if (grade === 'miss') stage.play('pet', 'hurt');
-    else {
-      stage.play('pet', 'hop');
-      if (grade === 'perfect') stage.emote('pet', 'star', 2);
-    }
+    scene.rep(grade);
     if (sim.done) finish();
     else placeZone();
   }
@@ -81,16 +81,58 @@ export function openTrainingModal({ pet, exerciseId, onComplete }) {
   function finish() {
     cancelAnimationFrame(raf);
     result = completeTraining(pet, exerciseId, sim.qualities);
+    scene.finish(result.avgQ >= 0.6);
     setTimeout(() => playSfx(result.levels ? 'levelup' : 'trained'), 250);
     const lines = [
-      `${STAT_LABELS[result.stat]} ${result.gain > 0 ? '+' : ''}${formatStat(result.stat, result.gain)}`,
+      ...result.gains.map(({ stat, gain }) => `${STAT_LABELS[stat]} ${gain > 0 ? '+' : ''}${formatStat(stat, gain)}`),
       `+${result.xp} XP`,
     ];
     if (result.specialty) lines.push('Specialty bonus ×1.5');
     if (result.boosted) lines.push('Protein boost ×1.3');
     if (result.levels) lines.push(`LEVEL UP! Now Lv ${pet.level}`);
+    for (const id of result.learned) lines.push(learnedLine(pet, id));
+    const m = mastery(pet, exerciseId);
+    lines.push(m.next ? `Mastery ${Math.floor(m.points)} / ${m.next}` : 'Station mastered!');
     feedback.replaceChildren(h('strong', {}, 'Session complete'), h('ul', { class: 'result-list' }, lines.map((l) => h('li', {}, l))));
+    showDone();
+    if (result.breakthroughs.length) offerMove(result.breakthroughs[0]);
+  }
+
+  function showDone() {
     actions.replaceChildren(h('button', { class: 'btn btn-primary', onclick: () => modal.close() }, 'Done'));
+    actions.querySelector('button').focus();
+  }
+
+  /** Progressive overload paid off: offer the station's move. */
+  function offerMove(moveId) {
+    const a = ABILITIES[moveId];
+    setTimeout(() => playSfx('levelup'), 700);
+    const box = h(
+      'div',
+      { class: 'breakthrough' },
+      h('strong', {}, 'BREAKTHROUGH!'),
+      h('p', {}, `${pet.name} pushed past their limit at the ${ex.name} and can learn a new move:`),
+      h('div', { class: 'ability-name' }, a.name, h('span', { class: 'tag' }, `CD ${a.cooldown}`)),
+      h('p', { class: 'food-desc' }, a.desc),
+    );
+    feedback.append(box);
+    actions.replaceChildren(
+      h('button', {
+        class: 'btn btn-primary',
+        onclick: () => {
+          learnTrainingMove(pet, exerciseId, moveId);
+          box.replaceChildren(h('strong', {}, learnedLine(pet, moveId)));
+          showDone();
+        },
+      }, `Learn ${a.name}`),
+      h('button', {
+        class: 'btn btn-ghost',
+        onclick: () => {
+          box.replaceChildren(h('p', { class: 'muted' }, `You can learn ${a.name} later from the Train tab.`));
+          showDone();
+        },
+      }, 'Not now'),
+    );
     actions.querySelector('button').focus();
   }
 

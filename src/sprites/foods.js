@@ -1,0 +1,116 @@
+/**
+ * Pixel-art food items, drawn by the feeding animation (ui/components/feedAnim.js).
+ * Same format as animals.js: one character = one pixel, '.' is transparent.
+ */
+export const FOOD_SPRITES = {
+  meat: {
+    id: 'food-meat',
+    palette: { w: '#f4f4f4', g: '#94b0c2', r: '#b13e53', d: '#5d275d', h: '#ef7d57' },
+    rows: [
+      '.ww.........',
+      'wwgw........',
+      '.wgwg.......',
+      '...ggdrr....',
+      '....drhhrr..',
+      '....drhhhrr.',
+      '....ddrrrrr.',
+      '.....ddddd..',
+    ],
+  },
+  fish: {
+    id: 'food-fish',
+    palette: { b: '#41a6f6', B: '#3b5dc9', c: '#73eff7', e: '#1a1c2c', w: '#f4f4f4' },
+    rows: [
+      '...bbbb.....',
+      '..bcccbb..B.',
+      '.bcewcbbbBB.',
+      'bbccccbbbBB.',
+      '.bbbbbbbbBB.',
+      '..BBBBBB..B.',
+      '...BBB......',
+    ],
+  },
+  berries: {
+    id: 'food-berries',
+    palette: { g: '#38b764', G: '#257179', q: '#3b5dc9', p: '#29366f', w: '#73eff7' },
+    rows: [
+      '....gg....',
+      '...gGg....',
+      '..qqGqq...',
+      '.qwqqqwq..',
+      '.qqqpqqq..',
+      'qwqqqqwqq.',
+      'qqqpqqqpq.',
+      '.qqqqqqq..',
+      '..ppppp...',
+    ],
+  },
+  bananas: {
+    id: 'food-bananas',
+    palette: { y: '#ffcd75', o: '#ef7d57', k: '#5d275d' },
+    rows: [
+      '..........k.',
+      '.........kk.',
+      '........yyo.',
+      'y......yyyo.',
+      'oy....yyyyo.',
+      '.oyyyyyyyo..',
+      '..ooyyyoo...',
+      '....ooo.....',
+    ],
+  },
+  honey: {
+    id: 'food-honey',
+    palette: { o: '#ef7d57', y: '#ffcd75', w: '#f4f4f4' },
+    rows: [
+      '..oooooo..',
+      '.oyyoyyyo.',
+      'oywyyoyyyo',
+      'oyyoyyyoyo',
+      'ooyyyoyyyo',
+      'oyyoyyyoyo',
+      'oyyyoyyyyo',
+      '.oyyyyoyo.',
+      '..oooooo..',
+    ],
+  },
+  protein: {
+    id: 'food-protein',
+    palette: { k: '#d8a066', K: '#a2653c', s: '#566c86', S: '#94b0c2', e: '#333c57' },
+    rows: [
+      '...kKkkKk...',
+      '..kKkkKkkK..',
+      'SSSSSSSSSSSS',
+      '.ssssssssss.',
+      '.sseeSSeess.',
+      '..ssssssss..',
+      '...eeeeee...',
+    ],
+  },
+  treat: {
+    id: 'food-treat',
+    palette: { l: '#a7f070', g: '#38b764', w: '#f4f4f4' },
+    rows: [
+      'll..gggg..ll',
+      'lllgwgggglll',
+      'lllggggwglll',
+      'll..gggg..ll',
+    ],
+  },
+  medicine: {
+    id: 'food-medicine',
+    palette: { c: '#a2653c', w: '#f4f4f4', g: '#38b764', G: '#257179', l: '#a7f070' },
+    rows: [
+      '..cccc..',
+      '..cccc..',
+      '...ww...',
+      '..wwww..',
+      '.wggggw.',
+      '.wglggw.',
+      '.wgwwgw.',
+      '.wgggGw.',
+      '.wGGGGw.',
+      '..wwww..',
+    ],
+  },
+};

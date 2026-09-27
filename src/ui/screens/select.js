@@ -73,9 +73,9 @@ export default {
           h(
             'ul',
             { class: 'ability-list' },
-            sp.abilities.map((aid) => {
+            sp.learnset.map(([level, aid]) => {
               const a = ABILITIES[aid];
-              return h('li', {}, h('div', { class: 'ability-name' }, a.name, h('span', { class: 'tag' }, a.cooldown ? `CD ${a.cooldown}` : 'Basic')), h('div', { class: 'food-desc' }, a.desc));
+              return h('li', {}, h('div', { class: 'ability-name' }, a.name, h('span', { class: 'tag' }, `Lv ${level}`), h('span', { class: 'tag' }, a.cooldown ? `CD ${a.cooldown}` : 'Basic')), h('div', { class: 'food-desc' }, a.desc));
             }),
           ),
           h(

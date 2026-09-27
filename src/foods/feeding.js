@@ -35,6 +35,15 @@ export function buyFood(game, foodId, qty = 1) {
   return { ok: true, message: `Bought ${food.name} (−${cost}c).` };
 }
 
+/** The need changes this pet actually gets from a food, after its likes and dislikes. */
+export function feedEffects(pet, foodId) {
+  const pref = PREFERENCE_EFFECTS[foodPreference(pet, foodId)];
+  const deltas = { ...FOODS[foodId].effects };
+  if (deltas.hunger) deltas.hunger = Math.round(deltas.hunger * pref.hungerMult);
+  if (pref.happiness) deltas.happiness = (deltas.happiness || 0) + pref.happiness;
+  return deltas;
+}
+
 export function feedPet(game, foodId, now = Date.now()) {
   const pet = game.pet;
   const food = FOODS[foodId];
@@ -45,10 +54,7 @@ export function feedPet(game, foodId, now = Date.now()) {
   }
 
   const preference = foodPreference(pet, foodId);
-  const pref = PREFERENCE_EFFECTS[preference];
-  const deltas = { ...food.effects };
-  if (deltas.hunger) deltas.hunger = Math.round(deltas.hunger * pref.hungerMult);
-  deltas.happiness = (deltas.happiness || 0) + pref.happiness;
+  const deltas = feedEffects(pet, foodId);
 
   applyNeedDeltas(pet, deltas);
   if (food.buff) Object.assign(pet.buffs, food.buff);

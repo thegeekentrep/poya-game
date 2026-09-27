@@ -85,6 +85,48 @@ export function tone(dest, { type = 'square', from, to = from, start = 0, dur = 
   osc.stop(t + dur + 0.02);
 }
 
+/**
+ * A voiced syllable: a buzzy oscillator shaped by a low-pass "mouth" filter, with a
+ * soft attack. `pitch` is [start, peak, end] Hz over the syllable; `mouth` the filter Hz.
+ * `rasp` (Hz) wobbles the volume that fast for a gravelly growl; `raspDepth` 0..1 sets how much.
+ */
+export function voice(dest, { pitch, mouth = 700, start = 0, dur = 0.15, vol = 0.16, type = 'sawtooth', rasp = 0, raspDepth = 0.7, at }) {
+  const t = at ?? ctx.currentTime + start;
+  const [p0, p1, p2] = pitch;
+  const osc = ctx.createOscillator();
+  const f = ctx.createBiquadFilter();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(p0, t);
+  osc.frequency.linearRampToValueAtTime(p1, t + dur * 0.3);
+  osc.frequency.exponentialRampToValueAtTime(p2, t + dur);
+  f.type = 'lowpass';
+  f.Q.value = 4; // a resonant peak reads as a vowel
+  f.frequency.setValueAtTime(mouth * 0.6, t);
+  f.frequency.linearRampToValueAtTime(mouth, t + dur * 0.3);
+  f.frequency.exponentialRampToValueAtTime(mouth * 0.5, t + dur);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+  gain.gain.setValueAtTime(vol, t + dur * 0.6);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  let out = osc.connect(f);
+  if (rasp) {
+    const trem = ctx.createGain();
+    const lfo = ctx.createOscillator();
+    const depth = ctx.createGain();
+    trem.gain.value = 1 - raspDepth / 2;
+    depth.gain.value = raspDepth / 2;
+    lfo.frequency.value = rasp;
+    lfo.connect(depth).connect(trem.gain);
+    lfo.start(t);
+    lfo.stop(t + dur + 0.02);
+    out = out.connect(trem);
+  }
+  out.connect(gain).connect(dest);
+  osc.start(t);
+  osc.stop(t + dur + 0.02);
+}
+
 /** A burst of filtered white noise, for impacts, swooshes and hi-hats. */
 export function noise(dest, { start = 0, dur = 0.1, vol = 0.18, filter = 1200, type = 'lowpass', at }) {
   const t = at ?? ctx.currentTime + start;

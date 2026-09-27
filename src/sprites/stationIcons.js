@@ -1,0 +1,95 @@
+/**
+ * Little pixel icons for the training stations (Train tab tiles and details card).
+ * Same format as animals.js: one character = one pixel, '.' is transparent.
+ */
+export const STATION_ICONS = {
+  boulder: {
+    id: 'station-boulder',
+    palette: { d: '#1a1c2c', m: '#566c86', l: '#94b0c2', s: '#333c57', b: '#8a5a36', c: '#6e4527' },
+    rows: [
+      '....dddd....',
+      '..dmmmmmd...',
+      '.dmllmmmmd..',
+      '.dmlmmmmmd..',
+      'dmmmmmmmmsd.',
+      'dmmmmmmmssd.',
+      '.dmmmmmssd..',
+      '..ddssssd...',
+      'bbbbbbbbbbbb',
+      'cbcbbcbbcbbc',
+    ],
+  },
+  waterfall: {
+    id: 'station-waterfall',
+    palette: { r: '#333c57', w: '#f4f4f4', b: '#41a6f6', B: '#3b5dc9' },
+    rows: [
+      'rrrbwbbwbrrr',
+      'rrrbbwbbwrrr',
+      'rrrwbbwbbrrr',
+      'rrrbwbbwbrrr',
+      'rrrbbwbbwrrr',
+      'rrrwbbwbbrrr',
+      'rrrbwbbwbrrr',
+      '.wwwwwwwwww.',
+      'bBBBBBBBBBBb',
+      '.BBBBBBBBBB.',
+    ],
+  },
+  log: {
+    id: 'station-log',
+    palette: { l: '#d8a066', L: '#a2653c', m: '#a2653c', h: '#d8a066', d: '#7c4b2f', y: '#ffcd75', o: '#ef7d57', b: '#8a5a36' },
+    rows: [
+      '..llllll..',
+      '..LmmmmL..',
+      '..mhmmmd..',
+      '..mhmmmd..',
+      '..yyyyyy..',
+      '..oooooo..',
+      '..mhmmmd..',
+      '..mhmmmd..',
+      '.bbbbbbbb.',
+      'bbbbbbbbbb',
+    ],
+  },
+  glove: {
+    id: 'station-glove',
+    palette: { r: '#b13e53', R: '#ef7d57', d: '#5d275d', w: '#f4f4f4' },
+    rows: [
+      '...rrrrr....',
+      '..rRRrrrr...',
+      '.rRrrrrrrr..',
+      '.rrrrrrrrrww',
+      '.rrrrrrrrrww',
+      '.drrrrrrrrww',
+      '..ddrrrrrdww',
+      '...ddddddd..',
+    ],
+  },
+  running: {
+    id: 'station-running',
+    palette: { b: '#3b5dc9', w: '#f4f4f4', g: '#333c57' },
+    rows: [
+      '....bbb.....',
+      '...bwwb.....',
+      '...bbbbb....',
+      '..bbbbbbbbb.',
+      '.bbbwbbwbbbb',
+      'bbbbbbbbbbbb',
+      'wwwwwwwwwwww',
+      '.gg..gg..gg.',
+    ],
+  },
+  classroom: {
+    id: 'station-classroom',
+    palette: { p: '#b13e53', w: '#f4f4f4', g: '#94b0c2' },
+    rows: [
+      '.pppp..pppp.',
+      'pwwwwppwwwwp',
+      'pwggwppwggwp',
+      'pwwwwppwwwwp',
+      'pwggwppwgwwp',
+      'pwwwwppwwwwp',
+      'pppppppppppp',
+    ],
+  },
+};

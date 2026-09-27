@@ -48,6 +48,19 @@ export function drawSprite(ctx, sprite, x, y, { scale = 1, flip = false, variant
   ctx.restore();
 }
 
+/** A sprite drawn onto its own small canvas (for icons in the UI). */
+export function spriteCanvas(sprite, scale = 1, className = '') {
+  const { w, h } = spriteSize(sprite);
+  const canvas = document.createElement('canvas');
+  canvas.width = w * scale;
+  canvas.height = h * scale;
+  if (className) canvas.className = className;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  drawSprite(ctx, sprite, 0, 0, { scale });
+  return canvas;
+}
+
 /** Draws a one-colour glyph (see fx.js) with its top-left at (x, y). */
 export function drawGlyph(ctx, glyph, x, y, { scale = 1, alpha = 1 } = {}) {
   ctx.save();

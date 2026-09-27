@@ -82,6 +82,7 @@
 .pet-meta { margin: 0; }
 
 .thought {
+  pointer-events: none; /* taps go through to the pet */
   position: absolute;
   top: 10px;
   left: 10px;
@@ -109,7 +110,7 @@
 .panel-note { margin-bottom: 12px; }
 .panel-note.is-warn { color: var(--c-orange); }
 
-.card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .action-card {
   display: flex;
   flex-direction: column;
@@ -125,6 +126,8 @@
 .action-title { font-family: var(--font-pixel); font-size: 11px; color: var(--c-yellow); }
 .action-desc { color: var(--muted); flex: 1; }
 .action-status { font-size: 18px; color: var(--c-cyan); }
+.action-short { display: none; color: var(--muted); }
+.hint-short { display: none; }
 
 .food-list, .train-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .food-row, .train-row {
@@ -136,8 +139,55 @@
   background: var(--panel-inset);
   border: 3px solid var(--border);
 }
-.train-row { grid-template-columns: minmax(0, 1fr) auto; }
-.food-swatch { width: 18px; height: 18px; background: var(--swatch); border: 2px solid var(--border); box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3); }
+.train-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+.station-btn { position: relative; display: grid; place-items: center; width: 48px; height: 40px; padding: 0; background: var(--c-ink); border: 2px solid var(--border); cursor: pointer; }
+.station-icon { display: block; image-rendering: pixelated; max-width: 36px; max-height: 30px; }
+.station-title, .mini-bars, .station-star, .station-ready { display: none; }
+.train-row.is-blocked .station-icon { opacity: 0.45; }
+.mini-bar { display: block; height: 4px; background: linear-gradient(var(--c), var(--c)) 0 0 / var(--p, 0%) 100% no-repeat, var(--c-dark); }
+@keyframes ready-pulse { 50% { transform: scale(1.35); } }
+.food-icon-btn { position: relative; display: grid; place-items: center; width: 48px; height: 40px; padding: 0; background: var(--c-ink); border: 2px solid var(--border); cursor: pointer; }
+.food-row.is-empty .food-icon { opacity: 0.35; filter: grayscale(0.7); }
+.food-title { display: none; }
+.food-panel, .train-panel, .stats-panel { position: relative; } /* popovers are placed inside */
+.popover {
+  position: absolute;
+  z-index: 25;
+  width: min(280px, 100%);
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 3px solid var(--c-yellow);
+  box-shadow: var(--shadow);
+  font-size: 19px;
+  line-height: 1.15;
+}
+.popover[hidden] { display: none; }
+/* the little pointer towards the tile */
+.popover::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--arrow-x, 50%) - 6px);
+  bottom: -9px;
+  width: 12px;
+  height: 12px;
+  background: var(--panel);
+  border-right: 3px solid var(--c-yellow);
+  border-bottom: 3px solid var(--c-yellow);
+  transform: rotate(45deg);
+}
+.popover.is-below::after { bottom: auto; top: -9px; transform: rotate(-135deg); }
+.popover-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-right: 24px; color: var(--c-yellow); }
+.popover-head canvas { max-width: 30px; max-height: 26px; image-rendering: pixelated; }
+.popover p { margin: 6px 0 0; }
+.food-pop-pref--favorite { color: var(--c-lime); }
+.food-pop-pref--disliked { color: var(--c-orange); }
+.popover-muted, .food-pop-pref--neutral { color: var(--muted); }
+.popover-fx { color: var(--c-cyan); }
+.popover-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.popover-actions .btn { flex: 1; }
+.popover-close { position: absolute; top: 4px; right: 6px; padding: 2px 6px; background: none; border: 0; color: var(--muted); font-size: 18px; cursor: pointer; }
+.food-icon { display: block; image-rendering: pixelated; max-width: 36px; max-height: 30px; }
+.food-mark { display: none; }
 .food-name, .train-name { color: var(--text); }
 .food-desc { color: var(--muted); font-size: 19px; }
 .food-owned { font-family: var(--font-pixel); font-size: 10px; color: var(--c-yellow); min-width: 34px; text-align: right; }
@@ -149,12 +199,14 @@
   grid-template-columns: 120px minmax(0, 1fr) auto;
   gap: 16px;
   align-items: center;
-  margin-top: 14px;
+  margin-top: 4px;
   padding: 12px;
   background: var(--panel-inset);
   border: 3px solid var(--border);
 }
 .opponent-portrait { border: 3px solid var(--border); background: var(--c-dark); line-height: 0; }
+.opponent-unknown { display: grid; place-items: center; aspect-ratio: 80 / 68; font-family: var(--font-pixel); font-size: 24px; line-height: 1; color: var(--muted); }
+.opponent-actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
 .opponent-info h3 { font-size: 12px; margin-bottom: 6px; }
 .opponent-info p { margin: 0 0 4px; }
 .reward { color: var(--c-lime); }
@@ -164,6 +216,21 @@
 .stat-table thead th { color: var(--muted); font-weight: 400; }
 .num-good { color: var(--c-lime); }
 .danger-zone { margin-top: 16px; padding-top: 14px; border-top: 3px dashed var(--c-dark); }
+.stats-compact { display: none; }
+.stat-chips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.stat-chip { display: grid; justify-items: center; padding: 3px 2px; background: var(--panel-inset); border: 2px solid var(--border); line-height: 1.05; }
+.stat-chip small { font-size: 15px; color: var(--muted); }
+.stat-chip strong { font-size: 19px; color: var(--c-yellow); font-weight: 400; }
+.loadout-head { margin: 6px 0 3px; font-size: 17px; color: var(--muted); }
+.loadout-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.loadout-slot { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; min-height: 34px; padding: 4px 8px; text-align: left; background: var(--panel-inset); border: 3px solid var(--border); color: var(--text); font: inherit; font-size: 18px; line-height: 1.05; cursor: pointer; }
+.loadout-slot span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.loadout-slot small { flex-shrink: 0; font-size: 15px; color: var(--c-cyan); }
+.loadout-slot.is-empty { justify-content: center; color: var(--muted); border-style: dashed; }
+.stats-buttons { margin-top: 6px; flex-wrap: nowrap; gap: 6px; }
+.stats-buttons .btn { flex: 1; }
+.stats-sheet h2 { color: var(--c-yellow); }
+.stats-sheet .btn-row { justify-content: center; margin-top: 12px; }
 
 /* ── Battle ────────────────────────────────────── */
 .battle-screen { max-width: 720px; margin: 0 auto; gap: 12px; }
@@ -238,14 +305,21 @@
 .sim-feedback { text-align: center; min-height: 1.4em; font-size: 26px; }
 .sim-feedback[data-grade='perfect'] { color: var(--c-lime); }
 .sim-feedback[data-grade='miss'] { color: var(--c-orange); }
+.train-learn { display: flex; flex-wrap: wrap; gap: 6px; }
+.train-learn:not(:empty) { margin-top: 6px; }
+.breakthrough { margin: 12px auto 0; padding: 10px 12px; max-width: 440px; text-align: left; font-size: 20px; border: 3px solid var(--c-yellow); background: var(--c-dark); }
+.breakthrough strong { color: var(--c-yellow); }
+.breakthrough p { margin: 4px 0; }
 .sim-feedback .result-list { text-align: left; display: inline-block; margin: 6px 0 0; font-size: 22px; }
 .training-sim .btn-row { justify-content: center; }
+.care-hud { display: flex; justify-content: space-between; margin: 8px 0 0; font-size: 22px; color: var(--c-cyan); }
+.care-game .stage-frame { margin-bottom: 8px; }
 
 /* ── Responsive ────────────────────────────────── */
 @media (max-width: 860px) {
   .species-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .home-grid { grid-template-columns: minmax(0, 1fr); }
-  .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -289,8 +363,82 @@
   .actions-panel { scroll-margin-top: 12px; }
   .toast-host { bottom: calc(var(--nav-h) + 12px + env(safe-area-inset-bottom)); }
 
+  /* Care tab fits on one screen: compact top bar, pet heading, needs and cards */
+  .home-screen .tb-user { display: none; }
+  .home-screen .topbar { flex-wrap: nowrap; gap: 8px; }
+  .home-screen .tb-stats { gap: 10px; flex-wrap: nowrap; white-space: nowrap; }
+  .home-screen .sound-toggle { min-height: 32px; padding: 4px 6px; font-size: 7px; }
+  .home-screen .pet-heading { flex-wrap: nowrap; align-items: center; margin: 8px 0 2px; }
+  .home-screen .pet-heading > div { min-width: 0; }
+  .home-screen .pet-name { display: inline; margin: 0 8px 0 0; }
+  .home-screen .pet-heading > div { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .home-screen .pet-meta { display: inline; font-size: 17px; }
+  .home-screen .xp-row { margin-bottom: 0; }
+  .home-screen .xp-row .bar-head { font-size: 17px; margin-bottom: 1px; }
+  .home-screen .xp-row .bar { height: 10px; border-width: 2px; }
+  .needs-panel h3 { display: none; }
+  .needs-panel .bar-row { margin-bottom: 4px; }
+  .needs-panel .bar-head { font-size: 18px; margin-bottom: 1px; }
+  .needs-panel .bar { height: 10px; }
+  .care-hint { font-size: 17px; line-height: 1.15; margin-bottom: 8px; }
   .card-grid { gap: 8px; }
-  .action-card { padding: 10px; }
+  .action-card { padding: 8px; gap: 2px; min-height: 76px; }
+
+  /* Battle tab fits on one screen: trophy bar, tiers, and a compact opponent card */
+  .battle-status { display: none; margin: 0 0 4px; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .battle-status.is-warn { display: block; } /* the mood is already next to the pet's name */
+  .trophy-note { display: none; }
+  .battle-panel .bar-row { margin: 0 0 6px; }
+  .battle-panel .seg-group { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin-bottom: 6px; }
+  .battle-panel .seg { min-height: 36px; padding: 3px 2px; font-size: 8px; line-height: 1.3; }
+  .seg-lock { display: block; font-size: 7px; }
+  .opponent-card .reward { font-size: 16px; white-space: nowrap; }
+  .reward-trophies { font-size: 0; }
+  .reward-trophies::after { content: '🏆'; font-size: 13px; }
+  .opponent-card { grid-template-columns: 56px minmax(0, 1fr); gap: 4px 10px; padding: 6px; margin: 0; font-size: 18px; line-height: 1.1; }
+  .opponent-card .opponent-info h3 { font-size: 10px; margin-bottom: 2px; }
+  .opponent-card .opponent-info p { margin: 0 0 2px; }
+  .opponent-tagline, .opponent-cost { display: none; }
+  .opponent-actions { grid-column: 1 / -1; flex-direction: row; }
+  .opponent-actions .btn { flex: 1; min-height: 36px; padding: 4px; font-size: 10px; }
+
+  /* Stats tab fits on one screen: a summary; the long lists open as sheets */
+  .stats-compact { display: block; }
+  .stats-full { display: none; }
+
+  /* Train tab fits on one screen: stations as a 3×2 grid of tiles (tap for details + Train) */
+  .train-status { margin: 0 0 6px; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .train-cost { display: none; }
+  .train-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .train-row { display: block; padding: 3px; }
+  .train-row > .train-info, .train-row > .btn { display: none; }
+  .station-btn { width: 100%; height: auto; min-height: 74px; padding: 5px 6px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .station-title { display: block; font-family: var(--font-pixel); font-size: 8px; line-height: 1.2; color: var(--text); }
+  .mini-bars { display: grid; gap: 2px; width: 100%; }
+  .station-star { display: block; position: absolute; top: 1px; left: 3px; font-size: 16px; line-height: 1; color: var(--c-lime); }
+  .station-ready { display: block; position: absolute; top: 1px; right: 4px; font-size: 16px; line-height: 1; color: var(--c-yellow); animation: ready-pulse 1s steps(2) infinite; }
+  .station-ready[hidden] { display: none; }
+  .train-row.is-blocked .station-title { color: var(--muted); }
+
+  /* Feed tab fits on one screen: foods as a 4×2 grid of tiles (tap the picture to feed) */
+  .food-note { margin: 0 0 6px; font-size: 17px; line-height: 1.15; color: var(--muted); }
+  .food-note .hint-long { display: none; }
+  .food-note .hint-short { display: inline; }
+  .food-list { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .food-row { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 4px; }
+  .food-row .food-info, .food-actions > .btn:first-child, .buy-word { display: none; }
+  .food-icon-btn { width: 100%; height: auto; min-height: 58px; padding: 4px 2px 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+  .food-title { display: block; font-family: var(--font-pixel); font-size: 8px; line-height: 1.2; color: var(--text); /* VT323's narrow M read as N at this size */ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .food-row.is-empty .food-title { color: var(--muted); }
+  .food-actions { display: none !important; }
+  .food-owned { position: absolute; top: 6px; right: 6px; min-width: 0; font-size: 8px; pointer-events: none; text-shadow: 1px 1px 0 var(--c-ink); }
+  .food-mark { display: block; position: absolute; top: 1px; left: 3px; font-size: 16px; line-height: 1; }
+  .food-mark--favorite { color: var(--c-lime); }
+  .food-mark--disliked { color: var(--c-orange); }
+
+  .action-desc { display: none; }
+  .action-short { display: block; flex: 1; font-size: 18px; line-height: 1.1; }
+  .action-status { font-size: 17px; }
 
   /* Select: sticky adopt bar */
   .species-card { padding: 8px; }
@@ -319,12 +467,52 @@
   .log-panel h3 { margin-bottom: 6px; }
 }
 
+/* Short phones: shrink the pet scene so the care tab still fits above the tab bar */
+@media (max-width: 640px) and (max-height: 780px) {
+  .home-screen { gap: 8px; }
+  .home-grid { gap: 8px; }
+  .pet-panel canvas.stage { width: auto; height: min(calc((100vw - 56px) * 0.625), 22vh); margin: 0 auto; }
+  .pet-panel .stage-frame { background: var(--c-ink); }
+  .needs-panel { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 8px; }
+  .needs-panel .bar-head { font-size: 16px; }
+  .hint-long { display: none; }
+  .hint-short { display: inline; }
+  .action-card { min-height: 0; }
+  .food-note, .train-status { display: none; }
+  .stat-chip { display: flex; justify-content: center; align-items: baseline; gap: 4px; padding: 2px; }
+  .loadout-slot { min-height: 30px; padding: 2px 6px; }
+  .loadout-head { margin: 4px 0 2px; }
+  .battle-panel .bar-row { display: none; } /* the locked tiers still show their trophy targets */
+  .battle-panel .seg { min-height: 32px; }
+  .opponent-actions .btn { min-height: 32px; }
+  .station-btn { min-height: 0; padding: 3px 5px; gap: 2px; }
+  .station-icon { max-height: 22px; }
+  .mini-bar { height: 3px; }
+  .train-list { gap: 4px; }
+  .food-row { padding: 3px; gap: 3px; }
+  .food-icon-btn { min-height: 52px; }
+}
+
+@media (max-width: 640px) and (max-height: 700px) {
+  .pet-panel canvas.stage { height: 19vh; }
+  .home-screen .topbar { padding: 4px 8px; }
+  .panel { padding: 10px; }
+  .food-icon-btn { min-height: 44px; gap: 1px; }
+  .stat-chip strong { font-size: 17px; }
+  .loadout-slot { min-height: 26px; font-size: 17px; }
+  .stats-buttons .btn { min-height: 32px; padding: 4px 8px; }
+  .opponent-card { grid-template-columns: 48px minmax(0, 1fr); padding: 4px 6px; }
+  .opponent-actions .btn { min-height: 28px; }
+  .loadout-grid, .stat-chips { gap: 3px; }
+  .loadout-head { margin: 2px 0 1px; font-size: 16px; }
+  .stats-buttons { margin-top: 4px; }
+  .stat-chip { padding: 1px 2px; }
+  .station-icon { max-height: 18px; }
+  .food-list { gap: 4px; }
+}
+
 @media (max-width: 560px) {
   .stats-cols { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-  .food-row { grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; }
-  .food-actions { grid-column: 1 / -1; justify-content: flex-end; }
-  .opponent-card { grid-template-columns: 90px minmax(0, 1fr); }
-  .opponent-card > .btn { grid-column: 1 / -1; }
   .thought { font-size: 17px; max-width: 75%; }
   .stat-table th, .stat-table td { padding: 4px 3px; }
 }

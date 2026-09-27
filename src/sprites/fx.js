@@ -8,5 +8,6 @@ export const GLYPHS = {
   sparkle: { color: '#f4f4f4', rows: ['.#.', '###', '.#.'] },
   anger: { color: '#ef7d57', rows: ['#.#', '.#.', '#.#'] },
   drop: { color: '#41a6f6', rows: ['.#.', '###', '###', '.#.'] },
+  question: { color: '#f4f4f4', rows: ['###', '..#', '.##', '.#.', '...', '.#.'] },
   note: { color: '#a7f070', rows: ['.##', '.#.', '.#.', '##.', '##.'] },
 };

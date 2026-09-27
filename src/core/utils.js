@@ -2,6 +2,15 @@ export const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 export const rand = (min = 0, max = 1) => min + Math.random() * (max - min);
 export const randInt = (min, max) => Math.floor(rand(min, max + 1));
 export const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+/** A shuffled copy of the array. */
+export function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 export const chance = (p) => Math.random() < p;
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 export const signed = (v) => (v >= 0 ? `+${v}` : `−${Math.abs(v)}`);

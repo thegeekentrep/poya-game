@@ -3,6 +3,8 @@
  * Actor x/y is the bottom-centre (feet) in stage pixels.
  * Animations: 'attack' (lunge), 'hurt' (flash + shake), 'hop', 'dodge', and a persistent faint.
  * Custom motions (see animate) and free-form effects (see effect) power battle moves.
+ * Scenes (training) add prop layers behind / in front of the actors (see setLayers)
+ * and looping idle motions (see setIdle).
  */
 import { SPRITES } from '../../sprites/animals.js';
 import { GLYPHS } from '../../sprites/fx.js';
@@ -48,6 +50,7 @@ export class PetStage {
     this.actors = new Map();
     this.particles = [];
     this.effects = [];
+    this.layers = { back: null, front: null };
     this.quake = null;
     this.now = performance.now() / 1000;
     stages.add(this);
@@ -57,8 +60,27 @@ export class PetStage {
   addActor(id, { species, x, y, scale = 1, flip = false }) {
     this.actors.set(id, {
       id, species, x, y, scale, flip, dir: flip ? -1 : 1,
-      sleeping: false, fainted: false, hidden: false, anim: null, trail: [], phase: Math.random() * 6, nextZ: 0,
+      sleeping: false, fainted: false, hidden: false, anim: null, idle: null, trail: [], phase: Math.random() * 6, nextZ: 0,
     });
+  }
+
+  /** Updates actor fields such as x, y or flip. */
+  setActor(id, props) {
+    const a = this.actors.get(id);
+    if (!a) return;
+    Object.assign(a, props);
+    if ('flip' in props) a.dir = a.flip ? -1 : 1;
+  }
+
+  /** A looping motion used whenever no animation is playing: motion(t, actor) -> pose (see animate). */
+  setIdle(id, motion) {
+    const a = this.actors.get(id);
+    if (a) a.idle = motion;
+  }
+
+  /** Scene layers drawn every frame as draw(ctx, t): back after the background, front over the actors. */
+  setLayers({ back = null, front = null } = {}) {
+    this.layers = { back, front };
   }
 
   setSleeping(id, sleeping) {
@@ -142,9 +164,11 @@ export class PetStage {
       else ctx.translate(Math.round((Math.random() - 0.5) * 2 * q.power * k), Math.round((Math.random() - 0.5) * 2 * q.power * k));
     }
     if (this.background) BACKGROUNDS[this.background](ctx, canvas.width, canvas.height, t);
+    if (this.layers.back) this.layers.back(ctx, t);
     // The actor that is moving is drawn last, so an attacker passes in front of its target.
     const order = [...this.actors.values()].sort((a, b) => Number(Boolean(a.anim)) - Number(Boolean(b.anim)));
     for (const actor of order) this.drawActor(actor, t);
+    if (this.layers.front) this.layers.front(ctx, t);
     this.drawEffects(t);
     this.drawParticles(t);
     ctx.restore();
@@ -192,6 +216,12 @@ export class PetStage {
         dy += pose.dy ?? 0;
         variant = pose.variant ?? variant;
       }
+    }
+    if (!a.anim && a.idle && !a.fainted) {
+      pose = a.idle(t, a) || {};
+      dx = pose.dx ?? 0;
+      dy += pose.dy ?? 0;
+      variant = pose.variant ?? variant;
     }
 
     // shadow stays on the ground and shrinks as the actor leaves it

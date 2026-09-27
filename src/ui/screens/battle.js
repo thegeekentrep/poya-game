@@ -6,6 +6,7 @@ import { go } from '../router.js';
 import { game, saveGame } from '../../core/state.js';
 import { SPECIES } from '../../pets/species.js';
 import { ABILITIES } from '../../combat/abilities.js';
+import { learnedLine } from '../moveText.js';
 import { EFFECTS, hasEffect } from '../../combat/effects.js';
 import { playRound, cooldownLeft, forfeit } from '../../combat/battle.js';
 import { chooseBotAbility, DIFFICULTIES } from '../../combat/bots.js';
@@ -236,6 +237,7 @@ export default {
         ...Object.entries(r.needs).map(([k, v]) => `${NEEDS[k].label} ${signed(v)}`),
       ];
       if (r.levels) lines.push(`LEVEL UP! ${game.pet.name} is now Lv ${r.level}`);
+      for (const id of r.learned) lines.push(learnedLine(game.pet, id));
       const unlocks = r.unlocked.map((id) => h('p', { class: 'tier-unlock' }, `${DIFFICULTIES[id].label} tier unlocked!`));
       if (unlocks.length) setTimeout(() => playSfx('levelup'), 900); // after the win jingle
       const title = r.won ? 'Victory!' : 'Defeat';
