@@ -11,15 +11,15 @@ import { drawSprite, drawGlyph, spriteSize } from '../../sprites/renderer.js';
 
 // Built-in animations: motion(p, actor) -> offsets, with p going 0 → 1.
 const ANIMS = {
-  attack: { duration: 0.35, motion: (p, a) => ({ dx: (Math.round(Math.sin(p * Math.PI) * 10) * a.scale * a.dir) / 2 }) },
-  hop: { duration: 0.45, motion: (p, a) => ({ dy: -Math.round(Math.sin(p * Math.PI) * 5) * a.scale }) },
+  attack: { duration: 0.35, motion: (p, a) => ({ dx: Math.round(Math.sin(p * Math.PI) * 10) * a.scale * a.dir }) },
+  hop: { duration: 0.45, motion: (p, a) => ({ dy: -Math.round(Math.sin(p * Math.PI) * 10) * a.scale }) },
   hurt: {
     duration: 0.45,
-    motion: (p, a) => ({ variant: Math.floor(p * 8) % 2 === 0 ? 'flash' : 'normal', dx: (Math.floor(p * 12) % 2 ? 1 : -1) * a.scale }),
+    motion: (p, a) => ({ variant: Math.floor(p * 8) % 2 === 0 ? 'flash' : 'normal', dx: (Math.floor(p * 12) % 2 ? 2 : -2) * a.scale }),
   },
   dodge: {
     duration: 0.4,
-    motion: (p, a) => ({ dx: -Math.round(Math.sin(p * Math.PI) * 8) * a.scale * a.dir, dy: -Math.round(Math.sin(p * Math.PI) * 3) * a.scale }),
+    motion: (p, a) => ({ dx: -Math.round(Math.sin(p * Math.PI) * 16) * a.scale * a.dir, dy: -Math.round(Math.sin(p * Math.PI) * 6) * a.scale }),
   },
 };
 const TRAIL_LENGTH = 4;

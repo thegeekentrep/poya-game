@@ -4,6 +4,8 @@ import { game, setPlayer, resetGame } from '../../core/state.js';
 import { CONFIG } from '../../core/config.js';
 import { SPECIES, SPECIES_ORDER } from '../../pets/species.js';
 import { PetStage } from '../components/petStage.js';
+import { SPRITES } from '../../sprites/animals.js';
+import { spriteSize } from '../../sprites/renderer.js';
 import { confirmButton } from '../components/modal.js';
 import { pick } from '../../core/utils.js';
 
@@ -22,8 +24,14 @@ let hopTimer = 0;
 
 export default {
   mount(root) {
-    stage = new PetStage({ width: 216, height: 60, background: 'meadow', label: 'Wolf, Gorilla, Grizzly Bear and Eagle' });
-    SPECIES_ORDER.forEach((id, i) => stage.addActor(id, { species: id, x: 30 + i * 52, y: 56, scale: 2 }));
+    // line the animals up side by side, 8px apart
+    const widths = SPECIES_ORDER.map((id) => spriteSize(SPRITES[id]).w);
+    stage = new PetStage({ width: widths.reduce((a, b) => a + b + 8, 8), height: 56, background: 'meadow', label: 'Wolf, Gorilla, Grizzly Bear and Eagle' });
+    let left = 8;
+    SPECIES_ORDER.forEach((id, i) => {
+      stage.addActor(id, { species: id, x: left + widths[i] / 2, y: 52 });
+      left += widths[i] + 8;
+    });
     hopTimer = setInterval(() => {
       const id = pick(SPECIES_ORDER);
       stage.play(id, 'hop');

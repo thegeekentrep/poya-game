@@ -40,22 +40,25 @@ function render(size, fill) {
   const sprite = SPRITES[ICON_SPECIES];
   const sw = sprite.rows[0].length;
   const sh = sprite.rows.length;
-  const scale = Math.max(1, Math.floor((size * fill) / sw));
-  const ox = Math.floor((size - sw * scale) / 2);
-  const oy = Math.floor((size - sh * scale) / 2);
-  const groundY = oy + sh * scale - scale;
+  // Whole-number scale keeps big icons crisp; tiny ones (favicon) shrink the sprite instead.
+  const fit = (size * fill) / sw;
+  const scale = fit >= 1 ? Math.floor(fit) : fit;
+  const bw = Math.round(sw * scale);
+  const bh = Math.round(sh * scale);
+  const ox = Math.floor((size - bw) / 2);
+  const oy = Math.floor((size - bh) / 2);
+  const groundY = oy + bh - Math.max(1, Math.round(scale));
   const px = Buffer.alloc(size * size * 4);
   const put = (x, y, [r, g, b]) => px.set([r, g, b, 255], (y * size + x) * 4);
 
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) put(x, y, hex(y < groundY ? (y < size * 0.18 ? BG : SKY) : GROUND));
-  sprite.rows.forEach((row, sy) => {
-    for (let sx = 0; sx < sw; sx++) {
-      const ch = row[sx];
-      if (ch === '.') continue;
-      const color = hex(sprite.palette[ch]);
-      for (let dy = 0; dy < scale; dy++) for (let dx = 0; dx < scale; dx++) put(ox + sx * scale + dx, oy + sy * scale + dy, color);
+  // nearest-neighbour: each icon pixel in the sprite's box samples one sprite pixel
+  for (let y = 0; y < bh; y++) {
+    for (let x = 0; x < bw; x++) {
+      const ch = sprite.rows[Math.min(sh - 1, Math.floor(y / scale))][Math.min(sw - 1, Math.floor(x / scale))];
+      if (ch !== '.') put(ox + x, oy + y, hex(sprite.palette[ch]));
     }
-  });
+  }
   return png(size, px);
 }
 

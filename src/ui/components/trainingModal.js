@@ -18,8 +18,8 @@ export function openTrainingModal({ pet, exerciseId, onComplete }) {
   const ex = EXERCISES[exerciseId];
   const sim = new TrainingSim({ moodMult: getMood(pet).mult });
 
-  const stage = new PetStage({ width: 96, height: 44, background: 'meadow', label: `${pet.name} training` });
-  stage.addActor('pet', { species: pet.species, x: 48, y: 40, scale: 1 });
+  const stage = new PetStage({ width: 192, height: 88, background: 'meadow', label: `${pet.name} training` });
+  stage.addActor('pet', { species: pet.species, x: 96, y: 80 });
 
   const good = h('div', { class: 'sim-zone sim-zone--good' });
   const perfect = h('div', { class: 'sim-zone sim-zone--perfect' });

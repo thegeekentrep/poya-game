@@ -51,8 +51,8 @@ export function createBattlePanel(ctx) {
 
     const sp = SPECIES[bot.species];
     const rewards = estimateRewards(bot.level, lastDifficulty);
-    previewStage = new PetStage({ width: 40, height: 24, label: `${bot.name} the ${sp.name}` });
-    previewStage.addActor('bot', { species: bot.species, x: 20, y: 22, scale: 1, flip: true });
+    previewStage = new PetStage({ width: 80, height: 48, label: `${bot.name} the ${sp.name}` });
+    previewStage.addActor('bot', { species: bot.species, x: 40, y: 45, flip: true });
     fightBtn = h('button', { class: 'btn btn-danger btn-big', onclick: fight }, 'Fight!');
     preview.append(
       h(

@@ -55,8 +55,8 @@ export default {
   mount(root, { battle } = {}) {
     if (!battle || !game.pet) return go('home');
     const stage = new PetStage({ width: 192, height: 104, background: 'arena', className: 'arena-stage', label: `${battle.player.name} versus ${battle.enemy.name}` });
-    stage.addActor('player', { species: battle.player.species, x: 60, y: 97, scale: 2 });
-    stage.addActor('enemy', { species: battle.enemy.species, x: 132, y: 97, scale: 2, flip: true });
+    stage.addActor('player', { species: battle.player.species, x: 56, y: 97 });
+    stage.addActor('enemy', { species: battle.enemy.species, x: 136, y: 97, flip: true });
 
     const cards = { player: fighterCard(battle.player), enemy: fighterCard(battle.enemy) };
     const roundEl = h('span', { class: 'round-label' });

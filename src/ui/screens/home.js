@@ -47,7 +47,7 @@ export default {
     const sp = getSpecies(pet);
 
     const stage = new PetStage({ width: 120, height: 72, background: 'meadow', label: `${pet.name} the ${sp.name}` });
-    stage.addActor('pet', { species: pet.species, x: 60, y: 64, scale: 2 });
+    stage.addActor('pet', { species: pet.species, x: 60, y: 64 });
 
     const topbar = createTopbar();
     const thought = h('div', { class: 'thought', 'aria-live': 'polite' });

@@ -21,7 +21,7 @@ function rasterise(sprite, variant) {
       if (ch === '.') continue;
       let color = sprite.palette[ch];
       if (variant === 'flash') color = '#f4f4f4';
-      else if (variant === 'blink' && ch === 'e') color = sprite.palette[sprite.blink];
+      else if (variant === 'blink' && (ch === 'e' || ch === 'i')) color = sprite.palette[sprite.blink];
       ctx.fillStyle = color;
       ctx.fillRect(x, y, 1, 1);
     }
