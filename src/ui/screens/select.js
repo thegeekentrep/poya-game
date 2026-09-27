@@ -22,8 +22,8 @@ export default {
 
     const cards = SPECIES_ORDER.map((id) => {
       const sp = SPECIES[id];
-      const stage = new PetStage({ width: 72, height: 44, label: sp.name });
-      stage.addActor(id, { species: id, x: 36, y: 42 });
+      const stage = new PetStage({ width: 76, height: 68, label: sp.name });
+      stage.addActor(id, { species: id, x: 38, y: 66 });
       stages.push(stage);
       const bars = STAT_KEYS.map((k) => {
         const bar = createBar({ label: STAT_LABELS[k], color: 'var(--c-yellow)', compact: true });

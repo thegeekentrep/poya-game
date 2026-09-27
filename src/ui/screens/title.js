@@ -26,10 +26,10 @@ export default {
   mount(root) {
     // line the animals up side by side, 8px apart
     const widths = SPECIES_ORDER.map((id) => spriteSize(SPRITES[id]).w);
-    stage = new PetStage({ width: widths.reduce((a, b) => a + b + 8, 8), height: 56, background: 'meadow', label: 'Wolf, Gorilla, Grizzly Bear and Eagle' });
+    stage = new PetStage({ width: widths.reduce((a, b) => a + b + 8, 8), height: 72, background: 'meadow', label: 'Wolf, Gorilla, Grizzly Bear and Eagle' });
     let left = 8;
     SPECIES_ORDER.forEach((id, i) => {
-      stage.addActor(id, { species: id, x: left + widths[i] / 2, y: 52 });
+      stage.addActor(id, { species: id, x: left + widths[i] / 2, y: 68 });
       left += widths[i] + 8;
     });
     hopTimer = setInterval(() => {

@@ -46,8 +46,8 @@ export default {
     if (!pet) return go('title');
     const sp = getSpecies(pet);
 
-    const stage = new PetStage({ width: 120, height: 72, background: 'meadow', label: `${pet.name} the ${sp.name}` });
-    stage.addActor('pet', { species: pet.species, x: 60, y: 64 });
+    const stage = new PetStage({ width: 128, height: 80, background: 'meadow', label: `${pet.name} the ${sp.name}` });
+    stage.addActor('pet', { species: pet.species, x: 64, y: 72 });
 
     const topbar = createTopbar();
     const thought = h('div', { class: 'thought', 'aria-live': 'polite' });

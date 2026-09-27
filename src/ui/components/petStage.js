@@ -23,6 +23,8 @@ const ANIMS = {
   },
 };
 const TRAIL_LENGTH = 4;
+// fliers (sprite.hover) float above the ground; they land to sleep or when fainted
+const hoverOf = (a) => (a.fainted || a.sleeping ? 0 : (SPRITES[a.species].hover ?? 0) * a.scale);
 const PARTICLE_LIFE = 1.3;
 
 // One shared animation loop for every stage on screen.
@@ -93,7 +95,8 @@ export class PetStage {
     const a = this.actors.get(id);
     if (!a) return null;
     const { w, h } = spriteSize(SPRITES[a.species]);
-    return { x: a.x, y: a.y, cx: a.x, cy: a.y - (h * a.scale) / 2, w: w * a.scale, h: h * a.scale, dir: a.dir, scale: a.scale };
+    const lift = hoverOf(a);
+    return { x: a.x, y: a.y, cx: a.x, cy: a.y - lift - (h * a.scale) / 2, w: w * a.scale, h: h * a.scale, dir: a.dir, scale: a.scale };
   }
 
   /** Draws draw(ctx, p, age) every frame for `duration` seconds, on top of the actors. */
@@ -115,7 +118,7 @@ export class PetStage {
         glyph,
         scale: Math.max(1, a.scale - 1) || 1,
         x: a.x + (Math.random() - 0.5) * w * a.scale * 0.6,
-        y: a.y - h * a.scale - 2,
+        y: a.y - hoverOf(a) - h * a.scale - 2,
         start: this.now + i * 0.18,
         drift: (Math.random() - 0.5) * 6,
       });
@@ -163,19 +166,20 @@ export class PetStage {
     const { w, h } = spriteSize(sprite);
     const s = a.scale;
     let dx = 0;
-    let dy = 0;
+    let dy = -hoverOf(a);
     let variant = 'normal';
     let pose = {};
 
     if (a.sleeping) {
       variant = 'blink';
-      dy = Math.sin(t * 1.2 + a.phase) > 0.2 ? s : 0;
+      dy += Math.sin(t * 1.2 + a.phase) > 0.2 ? s : 0;
       if (t > a.nextZ) {
         a.nextZ = t + 1.1;
         this.emote(a.id, 'z');
       }
     } else if (!a.fainted) {
-      dy = Math.sin(t * 2.6 + a.phase) > 0.35 ? s : 0; // breathing
+      // breathing; fliers bob a little more, like wing beats
+      dy += hoverOf(a) ? Math.round(Math.sin(t * 4 + a.phase) * 2) * s : Math.sin(t * 2.6 + a.phase) > 0.35 ? s : 0;
       if ((t + a.phase) % 3.4 < 0.14) variant = 'blink';
     }
 
