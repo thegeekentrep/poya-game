@@ -21,6 +21,13 @@ const BOT_NAMES = ['Fang', 'Rocky', 'Talon', 'Bruiser', 'Shadow', 'Kodiak', 'Sto
 /** How much randomness the AI adds on top of each ability's score. */
 const AI_NOISE = 1.2;
 
+/** The level range a bot of this tier can have against this pet (the opponent stays a secret). */
+export function botLevelRange(playerPet, difficultyId) {
+  const d = DIFFICULTIES[difficultyId];
+  const min = Math.max(1, playerPet.level + d.levelOffset);
+  return { min, max: min + d.levelJitter };
+}
+
 export function generateBot(playerPet, difficultyId = 'normal') {
   const d = DIFFICULTIES[difficultyId];
   const bot = createPet(pick(SPECIES_ORDER), pick(BOT_NAMES));

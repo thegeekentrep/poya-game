@@ -13,10 +13,11 @@ const DESCRIPTION =
   'POYA is a pixelated digital pet you raise like a real one. Adopt a wild animal, keep it fed, clean and happy, ' +
   'condition it in the training yard, then send it into the arena to battle rival pets.';
 
+// [title, full text (desktop), one-liner (phone tiles)]
 const FEATURES = [
-  ['Care', 'Your pet gets hungry, tired and dirty, and its mood changes. Neglect it and it gets sick.'],
-  ['Train', 'Timing-based drills raise Attack, HP, Defense, Speed and Crit. Happy pets train better.'],
-  ['Battle', 'Turn-based fights against bots, with each species using its own tactics.'],
+  ['Care', 'Feed, brush, play and cuddle. Your pet gets hungry, tired and dirty, and its mood changes. Neglect it and it gets sick.', 'Feed, brush, play & cuddle'],
+  ['Train', 'Six Digimon-style stations raise its stats. Master them, and level up, to learn new moves.', '6 stations, new moves'],
+  ['Battle', 'Turn-based fights against mystery rivals, with each species using its own tactics.', 'Fight mystery rivals'],
 ];
 
 let stage = null;
@@ -50,9 +51,9 @@ export default {
           'section',
           { class: 'panel about' },
           h('h2', {}, 'About the game'),
-          h('p', {}, DESCRIPTION),
-          h('ul', { class: 'feature-list' }, FEATURES.map(([t, d]) => h('li', {}, h('strong', {}, t), ' ', d))),
-          h('p', { class: 'muted' }, `Choose from ${SPECIES_ORDER.map((id) => SPECIES[id].name).join(', ')}.`),
+          h('p', { class: 'about-desc' }, DESCRIPTION),
+          h('ul', { class: 'feature-list' }, FEATURES.map(([t, d, short]) => h('li', {}, h('strong', {}, t), ' ', h('span', { class: 'feature-long' }, d), h('span', { class: 'feature-short' }, short)))),
+          h('p', { class: 'muted about-species' }, `Choose from ${SPECIES_ORDER.map((id) => SPECIES[id].name).join(', ')}.`),
         ),
       ),
     );

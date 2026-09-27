@@ -13,7 +13,7 @@ import { completeTraining, statCap, trainingCost, mastery, offeredMoves, learnTr
 import { TrainingSim } from '../src/training/simulator.js';
 import { ABILITIES } from '../src/combat/abilities.js';
 import { createFighter, createBattle, playRound } from '../src/combat/battle.js';
-import { generateBot, chooseBotAbility } from '../src/combat/bots.js';
+import { generateBot, chooseBotAbility, botLevelRange } from '../src/combat/bots.js';
 import { TROPHY_RULES, applyBattleResult, startBattle, isTierUnlocked, nextTier, highestUnlocked } from '../src/combat/arena.js';
 import { SPRITES } from '../src/sprites/animals.js';
 
@@ -205,6 +205,21 @@ test('battles always finish and every matchup is winnable', () => {
   console.log('  win rates (row species as player):', Object.fromEntries(Object.entries(wins).map(([k, v]) => [k, v.toFixed(2)])));
 });
 
+test('mystery opponents stay inside the level range the card shows', () => {
+  const pet = createPet('wolf');
+  pet.level = 6;
+  for (const tier of ['easy', 'normal', 'hard']) {
+    const { min, max } = botLevelRange(pet, tier);
+    const species = new Set();
+    for (let i = 0; i < 60; i++) {
+      const bot = generateBot(pet, tier);
+      assert.ok(bot.level >= min && bot.level <= max, `${tier}: Lv ${bot.level} outside ${min}-${max}`);
+      species.add(bot.species);
+    }
+    assert.ok(species.size > 1, 'opponents are random');
+  }
+});
+
 test('bots scale with difficulty', () => {
   const pet = createPet('wolf');
   pet.level = 5;
@@ -265,6 +280,21 @@ test('old saves without a loadout keep their original four moves', () => {
   const pet = hydratePet({ species: 'eagle', name: 'Old', level: 6 });
   assert.deepEqual(getLoadout(pet), ['talon_strike', 'scout', 'dive_bomb', 'screech']);
   assert.equal(knownMoves(pet).length, 9);
+});
+
+test('every animal has a call', async () => {
+  const { CALL_SPECIES } = await import('../src/audio/animalCalls.js');
+  assert.deepEqual([...CALL_SPECIES].sort(), [...SPECIES_ORDER].sort());
+});
+
+test('every move has its own combat sounds', async () => {
+  const { MOVE_SOUNDS, MOVE_SFX_NAMES } = await import('../src/audio/moveSounds.js');
+  const { isAttackMove } = await import('../src/sprites/moves.js');
+  for (const id of Object.keys(ABILITIES)) {
+    const [cast, hit] = MOVE_SOUNDS[id] ?? [];
+    assert.ok(MOVE_SFX_NAMES.includes(cast), `${id}: cast sound`);
+    if (isAttackMove(id)) assert.ok(MOVE_SFX_NAMES.includes(hit), `${id}: hit sound`);
+  }
 });
 
 test('every learned move works in battle', () => {

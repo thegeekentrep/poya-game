@@ -16,30 +16,34 @@ import { NEEDS } from '../../pets/needs.js';
 import { sleep, signed } from '../../core/utils.js';
 import { PetStage } from '../components/petStage.js';
 import { performMove, performImpact, performStatus, isAttackMove } from '../../sprites/moves.js';
+import * as fx from '../../sprites/vfx.js';
 import { createBar } from '../components/statBar.js';
 import { openModal, confirmButton } from '../components/modal.js';
 import { createSoundToggles } from '../components/soundToggles.js';
 import { playSfx } from '../../audio/sfx.js';
+import { playMoveCast, playMoveHit } from '../../audio/moveSounds.js';
 import { setTrack } from '../../audio/music.js';
 
 const EVENT_DELAY = { round: 250, use: 450, hit: 550, crit: 750, miss: 500, dot: 500, heal: 500, status: 500, faint: 700, end: 400, info: 450 };
 const MAX_LOG = 80;
+// the mystery opponent's reveal: silhouette, drumroll, then flash (seconds)
+const REVEAL = { drumroll: 0.5, reveal: 1.9, ready: 2.4 };
 
 let state = null;
 
-function fighterCard(f) {
+/** mystery: hide who this is (name, level, species, HP numbers) until reveal() */
+function fighterCard(f, { mystery = false } = {}) {
   const sp = SPECIES[f.species];
+  let hidden = mystery;
   const hp = createBar({ label: 'HP', color: f.side === 'player' ? 'var(--c-green)' : 'var(--c-red)', warnLow: true });
   const chips = h('div', { class: 'chips effect-chips' });
-  const el = h(
-    'div',
-    { class: `fighter fighter--${f.side}` },
-    h('div', { class: 'fighter-name' }, h('strong', {}, f.name), h('span', { class: 'muted' }, ` Lv ${f.level} ${sp.name}`)),
-    hp.el,
-    chips,
-  );
+  const nameEl = h('div', { class: 'fighter-name' });
+  const el = h('div', { class: `fighter fighter--${f.side}` }, nameEl, hp.el, chips);
+  function showName() {
+    nameEl.replaceChildren(h('strong', {}, hidden ? '???' : f.name), h('span', { class: 'muted' }, hidden ? ' Lv ? ???' : ` Lv ${f.level} ${sp.name}`));
+  }
   function update(hpValue = f.hp) {
-    hp.set(hpValue, f.maxHp, `${hpValue}/${f.maxHp}`);
+    hp.set(hpValue, f.maxHp, hidden ? '???' : `${hpValue}/${f.maxHp}`);
     chips.replaceChildren(
       ...Object.entries(f.effects).map(([id, e]) => {
         const def = EFFECTS[id];
@@ -48,18 +52,25 @@ function fighterCard(f) {
       }),
     );
   }
+  function reveal() {
+    hidden = false;
+    showName();
+    update();
+    el.classList.add('is-revealed');
+  }
+  showName();
   update();
-  return { el, update };
+  return { el, update, reveal };
 }
 
 export default {
   mount(root, { battle } = {}) {
     if (!battle || !game.pet) return go('home');
-    const stage = new PetStage({ width: 192, height: 104, background: 'arena', className: 'arena-stage', label: `${battle.player.name} versus ${battle.enemy.name}` });
+    const stage = new PetStage({ width: 192, height: 104, background: 'arena', className: 'arena-stage', label: `${battle.player.name} versus a mystery opponent` });
     stage.addActor('player', { species: battle.player.species, x: 56, y: 97 });
     stage.addActor('enemy', { species: battle.enemy.species, x: 136, y: 97, flip: true });
 
-    const cards = { player: fighterCard(battle.player), enemy: fighterCard(battle.enemy) };
+    const cards = { player: fighterCard(battle.player), enemy: fighterCard(battle.enemy, { mystery: true }) };
     const roundEl = h('span', { class: 'round-label' });
     const log = h('ol', { class: 'battle-log', 'aria-live': 'polite' });
     const touch = window.matchMedia('(pointer: coarse)').matches;
@@ -190,9 +201,12 @@ export default {
       return EVENT_DELAY[ev.kind] ?? 450;
     }
 
+    // each move sounds like what it is: a swipe whooshes and rakes, a bite snaps, a howl howls
     function playEventSfx(ev) {
-      if (ev.kind === 'use') playSfx('attack');
-      else if (['hit', 'crit', 'miss', 'dot', 'heal', 'faint'].includes(ev.kind)) playSfx(ev.kind);
+      if (ev.kind === 'use') playMoveCast(ev.ability, SPECIES[battle[ev.actor].species].voicePitch);
+      else if (ev.kind === 'hit' || ev.kind === 'crit') {
+        if (!playMoveHit(lastMove, { crit: ev.kind === 'crit' })) playSfx(ev.kind);
+      } else if (['miss', 'dot', 'heal', 'faint'].includes(ev.kind)) playSfx(ev.kind);
       else if (ev.kind === 'status' && ev.effect) playSfx(EFFECTS[ev.effect].kind);
       else if (ev.kind === 'end') playSfx(ev.actor === 'player' ? 'win' : 'lose');
     }
@@ -258,8 +272,36 @@ export default {
       );
     }
 
-    addLog(`${battle.player.name} enters the arena against ${battle.enemy.name}!`, 'info');
+    // ── the reveal: nobody knows who the opponent is until now ──
+    const enemySp = SPECIES[battle.enemy.species];
+    state.busy = true;
+    setTrack(null); // silence, then the drumroll
+    stage.setIdle('enemy', () => ({ variant: 'shadow' }));
+    addLog(`${battle.player.name} enters the arena. A mystery challenger steps out of the shadows...`, 'info');
+    stage.emote('enemy', 'question', 2);
     updateControls();
+    const at = (sec, fn) => setTimeout(() => state?.alive && fn(), sec * 1000);
+    at(REVEAL.drumroll, () => {
+      playSfx('drumroll');
+      stage.shake(0.8, REVEAL.reveal - REVEAL.drumroll);
+    });
+    at(REVEAL.reveal, () => {
+      stage.setIdle('enemy', null);
+      stage.effect(fx.flash('#f4f4f4', 0.8), 0.45);
+      stage.shake(3, 0.35);
+      stage.play('enemy', 'hop');
+      stage.emote('enemy', 'anger', 2);
+      cards.enemy.reveal();
+      stage.canvas.setAttribute('aria-label', `${battle.player.name} versus ${battle.enemy.name} the ${enemySp.name}`);
+      playSfx('reveal');
+      addLog(`It's ${battle.enemy.name}, a Lv ${battle.enemy.level} ${enemySp.name} (${enemySp.role})!`, 'info');
+      setTrack('battle');
+    });
+    at(REVEAL.ready, () => {
+      state.busy = false;
+      addLog('Choose your move!', 'info');
+      updateControls();
+    });
   },
 
   unmount() {

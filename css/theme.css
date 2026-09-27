@@ -66,6 +66,7 @@ button, input { font: inherit; color: inherit; }
 
 .muted { color: var(--muted); }
 .error { color: var(--c-orange); min-height: 1.2em; margin: 8px 0 0; }
+.start-panel .error:empty { display: none; } /* no gap under the form until there is a message */
 
 .app {
   max-width: 1080px;

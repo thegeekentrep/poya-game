@@ -8,10 +8,7 @@ const notes = (out, freqs, step, opts = {}) =>
 
 const SOUNDS = {
   // ── Battle ──
-  attack: (out) => {
-    tone(out, { from: 300, to: 700, dur: 0.08, vol: 0.11 });
-    noise(out, { dur: 0.1, vol: 0.07, filter: 3000 });
-  },
+  // (each move's own cast and hit sounds live in moveSounds.js; hit / crit are the fallback)
   hit: (out) => {
     tone(out, { from: 180, to: 60, dur: 0.12, vol: 0.16 });
     noise(out, { dur: 0.12, vol: 0.14, filter: 900 });
@@ -69,6 +66,19 @@ const SOUNDS = {
   },
   pounce: (out) => noise(out, { dur: 0.22, vol: 0.08, filter: 1800, type: 'bandpass' }),
   catch: (out) => notes(out, [784, 1047, 1319], 0.06, { vol: 0.11 }),
+  // mystery opponent: a drumroll that speeds up, then a dramatic sting on the reveal
+  drumroll: (out) => {
+    let t = 0;
+    for (let gap = 0.12; t < 1.3; gap = Math.max(0.035, gap * 0.9)) {
+      noise(out, { start: t, dur: 0.05, vol: 0.05 + t * 0.06, filter: 900 });
+      t += gap;
+    }
+  },
+  reveal: (out) => {
+    tone(out, { type: 'triangle', from: 110, to: 45, dur: 0.5, vol: 0.2 }); // boom
+    noise(out, { dur: 0.35, vol: 0.12, filter: 3000 });
+    [220, 262, 330, 440].forEach((f) => tone(out, { type: 'square', from: f, start: 0.05, dur: 0.45, vol: 0.05 }));
+  },
   chomp: (out) => noise(out, { dur: 0.06, vol: 0.12, filter: 2000 }),
   delight: (out) => notes(out, [659, 784, 1047], 0.08, { type: 'triangle', vol: 0.12 }),
   content: (out) => notes(out, [523, 659], 0.08, { type: 'triangle', vol: 0.1 }),

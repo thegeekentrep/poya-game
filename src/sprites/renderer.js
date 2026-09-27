@@ -1,6 +1,6 @@
 /**
  * Low-level pixel drawing. Sprites are rasterised once per variant
- * (normal / blink / flash) into offscreen canvases and cached.
+ * (normal / blink / flash / shadow = a black silhouette) into offscreen canvases and cached.
  */
 const cache = new Map();
 
@@ -21,6 +21,7 @@ function rasterise(sprite, variant) {
       if (ch === '.') continue;
       let color = sprite.palette[ch];
       if (variant === 'flash') color = '#f4f4f4';
+      else if (variant === 'shadow') color = '#0b0c14';
       else if (variant === 'blink' && (ch === 'e' || ch === 'i')) color = sprite.palette[sprite.blink];
       ctx.fillStyle = color;
       ctx.fillRect(x, y, 1, 1);

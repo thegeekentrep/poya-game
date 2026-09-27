@@ -127,8 +127,11 @@ export function voice(dest, { pitch, mouth = 700, start = 0, dur = 0.15, vol = 0
   osc.stop(t + dur + 0.02);
 }
 
-/** A burst of filtered white noise, for impacts, swooshes and hi-hats. */
-export function noise(dest, { start = 0, dur = 0.1, vol = 0.18, filter = 1200, type = 'lowpass', at }) {
+/**
+ * A burst of filtered white noise, for impacts, swooshes and hi-hats.
+ * `filterTo` sweeps the filter over the burst (whooshes); `q` sharpens it; `attack` fades it in.
+ */
+export function noise(dest, { start = 0, dur = 0.1, vol = 0.18, filter = 1200, filterTo, q, type = 'lowpass', attack = 0, at }) {
   const t = at ?? ctx.currentTime + start;
   if (!noiseBuf) {
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
@@ -140,8 +143,13 @@ export function noise(dest, { start = 0, dur = 0.1, vol = 0.18, filter = 1200, t
   const gain = ctx.createGain();
   src.buffer = noiseBuf;
   f.type = type;
-  f.frequency.value = filter;
-  gain.gain.setValueAtTime(vol, t);
+  f.frequency.setValueAtTime(filter, t);
+  if (filterTo) f.frequency.exponentialRampToValueAtTime(filterTo, t + dur);
+  if (q) f.Q.value = q;
+  if (attack) {
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(vol, t + attack);
+  } else gain.gain.setValueAtTime(vol, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
   src.connect(f).connect(gain).connect(dest);
   src.start(t, Math.random() * 0.5, dur + 0.02);

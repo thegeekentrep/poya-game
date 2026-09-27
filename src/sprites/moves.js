@@ -283,7 +283,6 @@ export const MOVES = {
 
   // Gorilla
   brace: {
-    attack: false,
     frames: [[0, {}], [0.2, { sx: 1.1, sy: 0.85 }], [0.55, { sx: 1.1, sy: 0.85 }], [0.7, {}]],
     contact: 0.4,
     cast: (stage, me) => at(stage, fx.ring(me.cx, me.cy, { r: 30, color: '#94b0c2' }), 0.5, 0.15),
@@ -317,7 +316,6 @@ export const MOVES = {
     },
   },
   jungle_roar: {
-    attack: false,
     frames: [[0, {}], [0.15, { up: 3, a: -0.15, sx: 1.08 }], [0.65, { up: 3, a: -0.15, sx: 1.08 }], [0.8, {}]],
     contact: 0.55,
     cast: (stage, me, foe) => {
@@ -464,7 +462,6 @@ export const MOVES = {
     },
   },
   tailwind: {
-    attack: false,
     frames: [[0, {}], [0.3, { f: -0.1, up: 20, a: -0.2, trail: true }], [0.6, { f: 0.1, up: 12, trail: true }], [0.8, {}]],
     contact: 0.5,
     cast: (stage, me) => {
@@ -481,7 +478,6 @@ export const MOVES = {
     },
   },
   eagle_eye: {
-    attack: false,
     frames: [[0, {}], [0.15, { up: 6, a: 0.15 }], [0.6, { up: 6, a: 0.15 }], [0.75, {}]],
     contact: 0.5,
     cast: (stage, me, foe) => {
