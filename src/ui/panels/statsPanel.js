@@ -45,6 +45,7 @@ export function createStatsPanel() {
             h('li', {}, `Loves: ${sp.favoriteFoods.map((f) => FOODS[f].name).join(', ')}`),
             h('li', {}, `Dislikes: ${sp.dislikedFoods.map((f) => FOODS[f].name).join(', ')}`),
             h('li', {}, `Record: ${rec.wins}W / ${rec.losses}L · best streak ${rec.bestStreak}`),
+            h('li', {}, `Trophies: ${rec.trophies} (best ${rec.bestTrophies})`),
             h('li', {}, `Together for ${formatDuration(Date.now() - pet.adoptedAt)}`),
           ),
         ),

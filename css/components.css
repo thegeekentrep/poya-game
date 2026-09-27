@@ -187,3 +187,7 @@
 /* Music / SFX toggles */
 .sound-toggles { display: flex; gap: 6px; }
 .sound-toggle.is-off { opacity: 0.55; text-decoration: line-through; }
+
+/* Arena tiers locked behind trophies */
+.seg.is-locked { opacity: 0.6; cursor: not-allowed; }
+.trophy-note { margin: 0 0 6px; }

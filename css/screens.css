@@ -51,6 +51,19 @@
 .brand { font-family: var(--font-pixel); font-size: 16px; color: var(--c-yellow); text-shadow: 2px 2px 0 var(--c-red); }
 .tb-stats { display: flex; gap: 18px; flex-wrap: wrap; }
 .tb-coins { color: var(--c-yellow); }
+.tb-trophies { color: var(--c-orange); }
+/* a tiny pixel cup */
+.tb-trophies::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  background:
+    linear-gradient(var(--c-orange), var(--c-orange)) 3px 8px / 4px 2px no-repeat,
+    linear-gradient(var(--c-orange), var(--c-orange)) 4px 5px / 2px 3px no-repeat,
+    linear-gradient(var(--c-orange), var(--c-orange)) 1px 0 / 8px 5px no-repeat;
+}
 .tb-coins::before {
   content: '';
   display: inline-block;
@@ -206,6 +219,7 @@
 .result h2 { font-size: 22px; }
 .result--win h2 { color: var(--c-lime); }
 .result--loss h2 { color: var(--c-orange); }
+.tier-unlock { font-family: var(--font-pixel); font-size: 12px; color: var(--c-yellow); margin: 4px 0; }
 .result .result-list { display: inline-block; text-align: left; margin: 8px 0 18px; }
 
 /* ── Training simulator ────────────────────────── */

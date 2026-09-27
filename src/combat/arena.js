@@ -6,6 +6,28 @@ import { DIFFICULTIES } from './bots.js';
 import { applyNeedDeltas, isAsleep } from '../pets/needs.js';
 import { getMood } from '../pets/mood.js';
 import { addXp } from '../pets/pet.js';
+import { DIFFICULTY_ORDER } from './bots.js';
+
+/**
+ * Trophies: won in the arena, lost on defeat. Reaching `unlock` opens a tier for good
+ * (it is checked against your best-ever count, so a losing streak never locks you out).
+ */
+export const TROPHY_RULES = {
+  win: { easy: 10, normal: 15, hard: 25 },
+  loss: 5,
+  unlock: { easy: 0, normal: 50, hard: 150 },
+};
+
+export const isTierUnlocked = (record, difficultyId) => record.bestTrophies >= TROPHY_RULES.unlock[difficultyId];
+
+/** The next locked tier and how many trophies it still needs, or null when all are open. */
+export function nextTier(record) {
+  const id = DIFFICULTY_ORDER.find((d) => !isTierUnlocked(record, d));
+  return id ? { id, at: TROPHY_RULES.unlock[id], need: TROPHY_RULES.unlock[id] - record.bestTrophies } : null;
+}
+
+/** The hardest tier the player may pick. */
+export const highestUnlocked = (record) => DIFFICULTY_ORDER.filter((d) => isTierUnlocked(record, d)).at(-1);
 
 export const ARENA_RULES = {
   cost: { energy: -20, hunger: -8, hygiene: -10 },
@@ -32,6 +54,7 @@ export function estimateRewards(enemyLevel, difficultyId) {
 }
 
 export function startBattle(game, botPet, difficultyId) {
+  if (!isTierUnlocked(game.record, difficultyId)) throw new Error(`Tier ${difficultyId} is locked`);
   const pet = game.pet;
   const moodMult = getMood(pet).mult; // mood before paying the cost
   applyNeedDeltas(pet, ARENA_RULES.cost);
@@ -58,8 +81,14 @@ export function applyBattleResult(game, battle) {
     rec.losses += 1;
     rec.streak = 0;
   }
+  const before = rec.trophies;
+  const wasOpen = DIFFICULTY_ORDER.filter((d) => isTierUnlocked(rec, d));
+  rec.trophies = Math.max(0, rec.trophies + (won ? TROPHY_RULES.win[battle.difficultyId] : -TROPHY_RULES.loss));
+  rec.bestTrophies = Math.max(rec.bestTrophies, rec.trophies);
+  const unlocked = DIFFICULTY_ORDER.filter((d) => isTierUnlocked(rec, d) && !wasOpen.includes(d));
+  const trophies = rec.trophies - before;
   game.coins += coins;
   applyNeedDeltas(pet, needs);
   const levels = addXp(pet, xp);
-  return { won, coins, xp, levels, needs, level: pet.level };
+  return { won, coins, xp, levels, needs, level: pet.level, trophies, unlocked };
 }

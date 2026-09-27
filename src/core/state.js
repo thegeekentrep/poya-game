@@ -12,7 +12,7 @@ function freshState() {
     pet: null,
     coins: CONFIG.STARTING_COINS,
     inventory: { ...CONFIG.STARTING_INVENTORY },
-    record: { wins: 0, losses: 0, streak: 0, bestStreak: 0 },
+    record: { wins: 0, losses: 0, streak: 0, bestStreak: 0, trophies: 0, bestTrophies: 0 },
     lastSeen: Date.now(),
   };
 }
@@ -31,6 +31,11 @@ export function loadGame() {
     if (!raw) return false;
     const saved = JSON.parse(raw);
     const base = freshState();
+    // Saves from before trophies existed: credit past wins so earned tiers stay open.
+    if (saved.record && saved.record.trophies === undefined) {
+      saved.record.trophies = (saved.record.wins || 0) * 10;
+      saved.record.bestTrophies = saved.record.trophies;
+    }
     replaceState({
       ...base,
       ...saved,

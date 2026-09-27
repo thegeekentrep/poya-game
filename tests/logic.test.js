@@ -14,6 +14,7 @@ import { TrainingSim } from '../src/training/simulator.js';
 import { ABILITIES } from '../src/combat/abilities.js';
 import { createFighter, createBattle, playRound } from '../src/combat/battle.js';
 import { generateBot, chooseBotAbility } from '../src/combat/bots.js';
+import { TROPHY_RULES, applyBattleResult, startBattle, isTierUnlocked, nextTier, highestUnlocked } from '../src/combat/arena.js';
 import { SPRITES } from '../src/sprites/animals.js';
 
 const makeGame = (species = 'wolf') => ({ pet: createPet(species), coins: 100, inventory: {}, record: { wins: 0, losses: 0 } });
@@ -146,4 +147,33 @@ test('bots scale with difficulty', () => {
   assert.equal(generateBot(pet, 'easy').level, 4);
   assert.ok(generateBot(pet, 'hard').level >= 7);
   for (const ex of EXERCISE_ORDER) assert.ok(generateBot(pet, 'hard').trained[EXERCISES[ex].stat] > 0);
+});
+
+test('trophies unlock arena tiers for good', () => {
+  const game = makeGame();
+  game.record = { wins: 0, losses: 0, streak: 0, bestStreak: 0, trophies: 0, bestTrophies: 0 };
+  const fight = (difficultyId, winner) => applyBattleResult(game, { winner, difficultyId, enemy: { level: 1 } });
+
+  assert.equal(highestUnlocked(game.record), 'easy');
+  assert.throws(() => startBattle(game, generateBot(game.pet, 'normal'), 'normal'), /locked/);
+  assert.deepEqual(nextTier(game.record), { id: 'normal', at: 50, need: 50 });
+
+  // losses never go below zero
+  assert.equal(fight('easy', 'enemy').trophies, 0);
+
+  let unlocked = [];
+  const winsNeeded = Math.ceil(TROPHY_RULES.unlock.normal / TROPHY_RULES.win.easy);
+  for (let i = 0; i < winsNeeded; i++) unlocked.push(...fight('easy', 'player').unlocked);
+  assert.deepEqual(unlocked, ['normal']);
+  assert.equal(highestUnlocked(game.record), 'normal');
+
+  // dropping back under the threshold keeps the tier open
+  const r = fight('normal', 'enemy');
+  assert.equal(r.trophies, -TROPHY_RULES.loss);
+  assert.ok(game.record.trophies < TROPHY_RULES.unlock.normal);
+  assert.ok(isTierUnlocked(game.record, 'normal'));
+
+  while (!isTierUnlocked(game.record, 'hard')) fight('normal', 'player');
+  assert.equal(nextTier(game.record), null);
+  assert.equal(fight('hard', 'player').trophies, TROPHY_RULES.win.hard);
 });

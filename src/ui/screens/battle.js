@@ -8,7 +8,7 @@ import { SPECIES } from '../../pets/species.js';
 import { ABILITIES } from '../../combat/abilities.js';
 import { EFFECTS, hasEffect } from '../../combat/effects.js';
 import { playRound, cooldownLeft, forfeit } from '../../combat/battle.js';
-import { chooseBotAbility } from '../../combat/bots.js';
+import { chooseBotAbility, DIFFICULTIES } from '../../combat/bots.js';
 import { applyBattleResult } from '../../combat/arena.js';
 import { formatMoodMult } from '../../pets/mood.js';
 import { NEEDS } from '../../pets/needs.js';
@@ -229,8 +229,15 @@ export default {
       updateControls();
       const r = applyBattleResult(game, battle);
       saveGame();
-      const lines = [`+${r.coins} coins`, `+${r.xp} XP`, ...Object.entries(r.needs).map(([k, v]) => `${NEEDS[k].label} ${signed(v)}`)];
+      const lines = [
+        `${signed(r.trophies)} trophies (${game.record.trophies} total)`,
+        `+${r.coins} coins`,
+        `+${r.xp} XP`,
+        ...Object.entries(r.needs).map(([k, v]) => `${NEEDS[k].label} ${signed(v)}`),
+      ];
       if (r.levels) lines.push(`LEVEL UP! ${game.pet.name} is now Lv ${r.level}`);
+      const unlocks = r.unlocked.map((id) => h('p', { class: 'tier-unlock' }, `${DIFFICULTIES[id].label} tier unlocked!`));
+      if (unlocks.length) setTimeout(() => playSfx('levelup'), 900); // after the win jingle
       const title = r.won ? 'Victory!' : 'Defeat';
       const flavor = r.won
         ? `${game.pet.name} defeated ${battle.enemy.name}!`
@@ -241,6 +248,7 @@ export default {
           { class: `result result--${r.won ? 'win' : 'loss'}` },
           h('h2', {}, title),
           h('p', {}, flavor),
+          unlocks,
           h('ul', { class: 'result-list' }, lines.map((l) => h('li', {}, l))),
           h('button', { class: 'btn btn-primary btn-big', onclick: () => modal.close() }, 'Back to camp'),
         ),
