@@ -322,6 +322,7 @@
 .breakthrough { margin: 12px auto 0; padding: 10px 12px; max-width: 440px; text-align: left; font-size: 20px; border: 3px solid var(--c-yellow); background: var(--c-dark); }
 .breakthrough strong { color: var(--c-yellow); }
 .breakthrough p { margin: 4px 0; }
+.sim-feedback strong { display: block; }
 .sim-feedback .result-list { text-align: left; display: inline-block; margin: 6px 0 0; font-size: 22px; }
 .training-sim .btn-row { justify-content: center; }
 .diff-picker { justify-content: center; margin: 0 0 4px; }
@@ -343,7 +344,6 @@
 }
 .swipe-pad:active { cursor: grabbing; border-color: var(--c-cyan); color: var(--text); }
 .swipe-pad--balance { justify-content: space-between; padding: 0 16px; }
-.swipe-pad.is-done { opacity: 0.4; pointer-events: none; }
 .chop-pad { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .chop-side {
   height: 120px; font-family: var(--font-pixel); font-size: 12px; color: var(--c-white); cursor: pointer;
@@ -351,7 +351,6 @@
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 .chop-side:active { background: var(--c-blue); transform: translateY(2px); }
-.chop-pad.is-done { opacity: 0.4; pointer-events: none; }
 .quiz-equation { text-align: center; font-family: var(--font-pixel); font-size: 22px; color: var(--c-yellow); margin: 0 0 10px; }
 .quiz-timer .game-meter-fill { background: var(--c-cyan); }
 .quiz-timer .game-meter-fill.is-low { background: var(--c-orange); }
@@ -550,6 +549,31 @@
   .ability-info { font-size: 17px; margin-top: 6px; line-height: 1.1; }
 }
 
+/* Phones: the training modal fits on one screen without scrolling */
+@media (max-width: 640px) {
+  .modal-backdrop:has(.training-sim) { padding: 8px; padding-top: max(8px, env(safe-area-inset-top)); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  .modal:has(.training-sim) { padding: 10px; max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .training-sim h2 { font-size: 13px; margin: 0 0 4px; }
+  .train-desc { font-size: 16px; line-height: 1.15; margin: 0 0 4px; }
+  .training-sim .stage-frame { margin: 4px 0 8px; background: var(--c-ink); }
+  .training-sim canvas.stage { width: auto; height: min(calc((100vw - 52px) * 0.4583), 26vh); margin: 0 auto; }
+  .game-hud { font-size: 19px; margin: 0 0 2px; }
+  .game-meter { height: 12px; }
+  .swipe-pad { height: 96px; margin-top: 8px; }
+  .chop-pad { margin-top: 8px; gap: 8px; }
+  .chop-side { height: 96px; font-size: 11px; }
+  .quiz-equation { font-size: 18px; margin-bottom: 6px; }
+  .quiz-choices { gap: 8px; margin-top: 8px; }
+  .quiz-choice { min-height: 46px; }
+  .sim-pips { margin: 8px 0; }
+  .sim-pip { width: 14px; height: 14px; }
+  .sim-feedback { font-size: 19px; line-height: 1.15; margin: 0 0 8px; }
+  .sim-feedback .result-list { font-size: 18px; margin-top: 4px; }
+  .sim-feedback .result-list li { margin: 0; }
+  .breakthrough { font-size: 17px; padding: 8px; margin-top: 8px; }
+  .diff-note { font-size: 16px; }
+}
+
 /* Short phones: shrink the pet scene so the care tab still fits above the tab bar */
 @media (max-width: 640px) and (max-height: 780px) {
   .species-portrait canvas.stage { height: 80px; }
@@ -589,6 +613,9 @@
 }
 
 @media (max-width: 640px) and (max-height: 700px) {
+  .train-desc { display: none; }
+  .training-sim canvas.stage { height: 22vh; }
+  .sim-feedback .result-list, .breakthrough { font-size: 16px; }
   .pet-panel canvas.stage { height: 19vh; }
   .home-screen .topbar { padding: 4px 8px; }
   .panel { padding: 10px; }

@@ -55,7 +55,7 @@ export function openTrainingModal({ pet, exerciseId, onComplete }) {
     'div',
     { class: 'training-sim' },
     h('h2', {}, `${ex.name} training`),
-    h('p', { class: 'muted' }, ex.desc, load ? ` Overload Lv ${load}: it gets tougher.` : ''),
+    h('p', { class: 'muted train-desc' }, ex.desc, load ? ` Overload Lv ${load}: it gets tougher.` : ''),
     h('div', { class: 'stage-frame' }, stage.canvas),
     play,
     pips,
@@ -314,8 +314,7 @@ export function openTrainingModal({ pet, exerciseId, onComplete }) {
   function finish() {
     cancelAnimationFrame(raf);
     keyHandler = () => {};
-    if (exerciseId === 'classroom') play.replaceChildren();
-    play.querySelector('.swipe-pad, .chop-pad')?.classList.add('is-done');
+    play.replaceChildren(); // the controls are done with: make room for the results
     result = completeTraining(pet, exerciseId, sim.qualities, { difficulty });
     scene.finish(result.avgQ >= 0.6);
     setTimeout(() => playSfx(result.levels ? 'levelup' : 'trained'), 250);
