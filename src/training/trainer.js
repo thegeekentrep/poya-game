@@ -1,7 +1,7 @@
 /**
  * Turns a finished training session into stat gains, costs and XP.
  */
-import { EXERCISES, STAT_GAIN, TRAINING_RULES as R } from './exercises.js';
+import { EXERCISES, STAT_GAIN, TRAINING_RULES as R, TRAINING_DIFFICULTY } from './exercises.js';
 import { getSpecies, addXp, movesLearnedSince, setEquipped } from '../pets/pet.js';
 import { applyNeedDeltas, isAsleep } from '../pets/needs.js';
 import { getMood } from '../pets/mood.js';
@@ -74,15 +74,16 @@ export function learnTrainingMove(pet, exerciseId, moveId) {
   return true;
 }
 
-/** qualities: array of 0..1 values, one per rep. */
-export function completeTraining(pet, exerciseId, qualities) {
+/** qualities: array of 0..1 values, one per rep. difficulty: a TRAINING_DIFFICULTY key. */
+export function completeTraining(pet, exerciseId, qualities, { difficulty = 'normal' } = {}) {
   const ex = EXERCISES[exerciseId];
+  const reward = (TRAINING_DIFFICULTY[difficulty] ?? TRAINING_DIFFICULTY.normal).reward;
   const avgQ = qualities.reduce((a, b) => a + b, 0) / Math.max(qualities.length, 1);
   const mood = getMood(pet);
   const specialty = isSpecialty(pet, exerciseId);
   const boosted = Boolean(pet.buffs.trainingBoost);
 
-  const mult = avgQ * mood.mult * (specialty ? R.specialtyMult : 1) * (boosted ? R.proteinBoostMult : 1);
+  const mult = avgQ * reward * mood.mult * (specialty ? R.specialtyMult : 1) * (boosted ? R.proteinBoostMult : 1);
   const raise = (stat, ratio) => {
     const { current, cap } = statProgress(pet, stat);
     const gain = Math.max(0, Math.min(STAT_GAIN[stat] * ratio * mult, cap - current));
@@ -97,11 +98,11 @@ export function completeTraining(pet, exerciseId, qualities) {
 
   // good and perfect reps build mastery; crossing a tier offers a new move
   const before = mastery(pet, exerciseId).tier;
-  pet.mastery[exerciseId] = mastery(pet, exerciseId).points + qualities.filter((q) => q >= 0.6).reduce((a, b) => a + b, 0);
+  pet.mastery[exerciseId] = mastery(pet, exerciseId).points + qualities.filter((q) => q >= 0.6).reduce((a, b) => a + b, 0) * reward;
   const breakthroughs = ex.moves.slice(before, mastery(pet, exerciseId).tier);
 
-  const xp = Math.round(R.baseXp + R.bonusXp * avgQ);
+  const xp = Math.round((R.baseXp + R.bonusXp * avgQ) * reward);
   const levels = addXp(pet, xp);
   const learned = movesLearnedSince(pet, pet.level - levels);
-  return { exerciseId, gains, xp, levels, learned, breakthroughs, avgQ, specialty, boosted, moodMult: mood.mult };
+  return { exerciseId, gains, xp, levels, learned, breakthroughs, avgQ, specialty, boosted, moodMult: mood.mult, difficulty, reward };
 }

@@ -20,7 +20,7 @@ Progress is saved in the browser's `localStorage`.
 The game is built mobile-first for phones:
 - On the camp screen, the tabs become a bottom tab bar. Needs show as a compact 2-column grid, and battle HP cards sit side by side.
 - Tap targets are at least 44px. Double-tap zoom and pull-to-refresh are turned off. Hover effects only apply on devices that can hover.
-- In battle, **hold** a move to read its description (a tap uses it). In training, tap anywhere on the bar.
+- In battle, **hold** a move to read its description (a tap uses it). In training, swipe on the pad for Boulder Moving, Waterfall and Running, tap left or right to chop at the Striking Log or block at the Punch Glove, and tap an answer in the Classroom.
 - Layouts account for notches and home-indicator areas (`viewport-fit=cover` + `env(safe-area-inset-*)`).
 
 It is also an installable **PWA**: `manifest.webmanifest`, icons in `icons/`, and `sw.js`, which makes the game work offline after the first visit. On a phone, open the hosted URL and choose *Add to Home Screen* / *Install app*. PWAs require HTTPS, except on `localhost`.
@@ -51,8 +51,8 @@ Before a store release, consider:
 - **Care**: Fullness, energy, happiness, hygiene and health change in real time, and more slowly while you're away. Neglect causes sickness. Mood comes from these needs and scales both training gains and battle damage (−40% to +15%).
 - **Groom & Play**: Groom is a brushing mini-game (drag the brush to scrub off mud and tangles); Play is a feather teaser wand (dangle it low to tempt a pounce, yank it away to tease). How well it goes scales the hygiene or happiness gain. Tap your pet to cuddle, but not too much.
 - **Feed**: Buy food with arena coins. Each species has favorite and disliked foods. Protein Chow boosts the next training session, and Medicine cures sickness.
-- **Train**: Digimon World-style equipment (Boulder Moving, Waterfall, Striking Log, Punch Glove, Running, Classroom). Each station raises a primary stat and, by a smaller amount, a secondary one. Stamina (the MP stand-in) lowers the energy cost of training. Sessions are a timing mini-game with 3 reps. Each stat has a cap per level, so you need to level up to keep growing. Each species trains its specialty 50% faster.
-- **Mastery**: Good and perfect reps build mastery at each training station (progressive overload). At 12 and 36 mastery the station offers one of its 2 moves, which any animal can learn, and its timing bar gets faster. Skipped moves can be learned later from the Train tab.
+- **Train**: Digimon World-style equipment (Boulder Moving, Waterfall, Striking Log, Punch Glove, Running, Classroom). Each station raises a primary stat and, by a smaller amount, a secondary one. Stamina (the MP stand-in) lowers the energy cost of training. Before each session you pick Easy, Normal or Hard: harder sessions play tougher but give ×1.35 gains, XP and mastery (Easy gives ×0.75). At the Punch Glove, spring gloves punch from machines on both sides: watch for the flashing machine and block on that side just before the glove lands (a late block is a perfect parry). At the Striking Log you chop a tall log down from the bottom: tap the left or right side to chop from that side, and dodge the branches as the log drops (a branch landing on your pet bonks and dazes it). The Classroom is a math quiz: 3 equations with 4 choices each, where quick right answers are perfect and harder settings bring times tables, division and two-step problems. Boulder Moving (swipe to shove the boulder to the flag before it rolls back), Waterfall (drag against the lean to keep your pet from falling) and Running (swipe nonstop to sprint to the finish) are swipe games. Every session is graded at 3 checkpoints. Each stat has a cap per level, so you need to level up to keep growing. Each species trains its specialty 50% faster.
+- **Mastery**: Good and perfect reps build mastery at each training station (progressive overload). At 12 and 36 mastery the station offers one of its 2 moves, which any animal can learn, and its mini-game gets harder. Skipped moves can be learned later from the Train tab.
 - **Moves**: Each species starts with 4 moves and learns a new one every level from Lv 2 to Lv 10 (13 in total). Pick which 4 to take into battle in the Stats tab; the basic attack is always equipped.
 - **Battle**: Turn-based fights with your 4 equipped moves, cooldowns and status effects, against Rookie, Contender or Champion bots.
 
@@ -81,7 +81,11 @@ src/
   training/
     exercises.js     ← training equipment + rules (costs, caps, bonuses)
     trainer.js       applies a finished session to the pet
-    simulator.js     the timing mini-game logic (no DOM)
+    simulator.js     the grades shared by the mini-games
+    gloveBlock.js    the punch-glove blocking game (no DOM)
+    games.js         the swipe mini-games: boulder, waterfall, running (no DOM)
+    mathQuiz.js      the classroom math quiz (no DOM)
+    logChop.js       the striking-log chopping game (no DOM)
   combat/
     abilities.js     ← every move, plus bot AI scoring
     effects.js       status effects (stealth, stun, bleed, ...)

@@ -10,7 +10,10 @@ import { feedPet, buyFood, feedEffects } from '../src/foods/feeding.js';
 import { performCare, checkCare, tapPet, createCuddleTracker, CUDDLE_RULES } from '../src/care/care.js';
 import { EXERCISES, EXERCISE_ORDER } from '../src/training/exercises.js';
 import { completeTraining, statCap, trainingCost, mastery, offeredMoves, learnTrainingMove } from '../src/training/trainer.js';
-import { TrainingSim } from '../src/training/simulator.js';
+import { BoulderGame, RunningGame, WaterfallGame, gameIntensity } from '../src/training/games.js';
+import { MathQuiz, makeProblem, makeChoices } from '../src/training/mathQuiz.js';
+import { LogChopGame, makeBranches } from '../src/training/logChop.js';
+import { GloveGame, GUARD } from '../src/training/gloveBlock.js';
 import { ABILITIES } from '../src/combat/abilities.js';
 import { createFighter, createBattle, playRound } from '../src/combat/battle.js';
 import { generateBot, chooseBotAbility, botLevelRange } from '../src/combat/bots.js';
@@ -160,17 +163,6 @@ test('stamina lowers the training energy cost', () => {
   assert.ok(trainingCost(pet).energy > base); // less negative
   pet.trained.sta = 999;
   assert.equal(trainingCost(pet).energy, Math.round(base * 0.5));
-});
-
-test('training simulator grades hits', () => {
-  const sim = new TrainingSim({ reps: 3 });
-  sim.pos = sim.zone.center;
-  assert.equal(sim.hit(), 'perfect');
-  sim.pos = sim.zone.center > 0.5 ? 0 : 1;
-  assert.equal(sim.hit(), 'miss');
-  sim.hit();
-  assert.ok(sim.done);
-  assert.equal(sim.qualities.length, 3);
 });
 
 test('leveling carries over XP', () => {
@@ -335,7 +327,8 @@ test('training mastery offers station moves (progressive overload)', () => {
 });
 
 test('mastery makes the station harder', () => {
-  assert.ok(new TrainingSim({ load: 2 }).speed > new TrainingSim({ load: 0 }).speed);
+  assert.ok(gameIntensity('normal', 2) > gameIntensity('normal', 0));
+  assert.ok(new GloveGame({ intensity: gameIntensity('normal', 2) }).windup < new GloveGame({ intensity: gameIntensity('normal', 0) }).windup);
 });
 
 test('station moves work in battle for every species', () => {
@@ -351,4 +344,210 @@ test('station moves work in battle for every species', () => {
       assert.ok(playRound(battle, move, knownMoves(pet)[0]).length > 0);
     }
   }
+});
+
+/** Runs a gesture game at 60 fps, calling act(game) every frame, until it ends. */
+function playOut(game, act = () => {}) {
+  for (let i = 0; i < 60 * 30 && !game.done; i++) {
+    act(game, i);
+    game.update(1 / 60);
+  }
+  return game.results;
+}
+
+test('training difficulty scales gains, XP and mastery', () => {
+  const run = (difficulty) => {
+    const pet = createPet('gorilla');
+    return { r: completeTraining(pet, 'log', [1, 1, 1], { difficulty }), pet };
+  };
+  const easy = run('easy');
+  const normal = run('normal');
+  const hard = run('hard');
+  assert.ok(easy.r.gains[0].gain < normal.r.gains[0].gain && normal.r.gains[0].gain < hard.r.gains[0].gain);
+  assert.ok(easy.r.xp < normal.r.xp && normal.r.xp < hard.r.xp);
+  assert.ok(hard.pet.mastery.log > normal.pet.mastery.log);
+  assert.ok(gameIntensity('hard', 2) > gameIntensity('hard', 0) && gameIntensity('hard') > gameIntensity('easy'));
+});
+
+test('boulder game: steady swiping reaches the flag, doing nothing misses', () => {
+  const pushed = playOut(new BoulderGame({ intensity: 1 }), (g, i) => i % 20 === 0 && g.drag({ dx: 0.8, dy: 0, x: 0 }));
+  assert.equal(pushed.length, 3);
+  assert.ok(!pushed.includes('miss'), pushed.join());
+  assert.deepEqual(playOut(new BoulderGame()), ['miss', 'miss', 'miss']);
+  // backward swipes don't help, and it rolls back when left alone
+  const g = new BoulderGame();
+  g.drag({ dx: 0.8, dy: 0, x: 0 });
+  for (let i = 0; i < 30; i++) g.update(1 / 60);
+  const peak = g.pos;
+  g.drag({ dx: -0.8, dy: 0, x: 0 });
+  for (let i = 0; i < 120; i++) g.update(1 / 60);
+  assert.ok(peak > 0 && g.pos < peak);
+});
+
+test('boulder game is harder on hard', () => {
+  const swipe = (g, i) => i % 20 === 0 && g.drag({ dx: 0.8, dy: 0, x: 0 });
+  const easy = new BoulderGame({ intensity: 0 });
+  const hard = new BoulderGame({ intensity: 3 });
+  playOut(easy, swipe);
+  playOut(hard, swipe);
+  assert.ok(easy.time < hard.time || hard.results.includes('miss'));
+});
+
+test('running game: fast continuous swiping wins, stopping early falls short', () => {
+  const fast = playOut(new RunningGame({ intensity: 1 }), (g) => g.drag({ dx: 0.08, dy: 0, x: 0 }));
+  assert.deepEqual(fast, ['perfect', 'perfect', 'perfect']);
+  const quitter = playOut(new RunningGame({ intensity: 1 }), (g, i) => i < 60 && g.drag({ dx: 0.08, dy: 0, x: 0 }));
+  assert.ok(quitter.includes('miss'));
+  // keyboard: alternating keys beats hammering one
+  const alt = new RunningGame();
+  const same = new RunningGame();
+  for (let i = 0; i < 10; i++) {
+    alt.key(i % 2 ? 'ArrowLeft' : 'ArrowRight', true);
+    same.key('ArrowRight', true);
+  }
+  assert.ok(alt.vel > same.vel * 2);
+});
+
+test('waterfall game: balancing keeps the pet up, neglect makes it fall', () => {
+  // a simple controller: push against the lean
+  const steady = new WaterfallGame({ intensity: 1 });
+  playOut(steady, (g) => g.drag({ dx: 0, dy: 0, x: Math.max(-1, Math.min(1, -(g.tilt * 3 + g.spin * 1.5))) }));
+  assert.equal(steady.falls, 0);
+  assert.ok(!steady.results.includes('miss'), steady.results.join());
+  const neglected = new WaterfallGame({ intensity: 1 });
+  playOut(neglected);
+  assert.ok(neglected.falls > 0);
+  assert.ok(neglected.results.includes('miss'));
+});
+
+test('math quiz problems are well formed at every tier', () => {
+  // evaluates the problem text the way a player reads it
+  const solve = (text) => Function(`return ${text.replaceAll('×', '*').replaceAll('÷', '/').replaceAll('−', '-')}`)();
+  for (let tier = 0; tier <= 3; tier += 0.5) {
+    for (let i = 0; i < 200; i++) {
+      const { text, answer } = makeProblem(tier);
+      assert.equal(solve(text), answer, text);
+      assert.ok(Number.isInteger(answer) && answer >= 0, text);
+      const choices = makeChoices(answer);
+      assert.equal(choices.length, 4);
+      assert.equal(new Set(choices).size, 4, choices.join());
+      assert.ok(choices.includes(answer));
+      assert.ok(choices.every((c) => Number.isInteger(c) && c >= 0), choices.join());
+    }
+  }
+});
+
+test('math quiz grades speed and correctness', () => {
+  const quiz = new MathQuiz({ intensity: 1 });
+  const right = () => quiz.choices.indexOf(quiz.question.answer);
+  const wrong = () => quiz.choices.findIndex((c) => c !== quiz.question.answer);
+  quiz.update(0.5);
+  assert.equal(quiz.answer(right()), 'perfect');
+  quiz.update(quiz.perfectWithin + 0.1);
+  assert.equal(quiz.answer(right()), 'good');
+  assert.equal(quiz.answer(wrong()), 'miss');
+  assert.ok(quiz.done);
+  assert.equal(quiz.answer(0), null);
+  // running out of time is a miss
+  const slow = new MathQuiz({ intensity: 1 });
+  slow.update(slow.perQuestion + 0.01);
+  assert.deepEqual(slow.results, ['miss']);
+  assert.equal(slow.last.picked, null);
+  // hard gives less time
+  assert.ok(new MathQuiz({ intensity: 3 }).perQuestion < new MathQuiz({ intensity: 0 }).perQuestion);
+});
+
+test('log chop: every log has a safe side at every step', () => {
+  for (let i = 0; i < 300; i++) {
+    const rows = makeBranches(30, 0.7);
+    assert.equal(rows[0], null);
+    assert.equal(rows[1], null);
+    for (let r = 1; r < rows.length; r++) {
+      // a branch never sits right above one on the other side
+      if (rows[r] && rows[r - 1]) assert.equal(rows[r], rows[r - 1]);
+    }
+  }
+});
+
+test('log chop: dodging branches clears the log cleanly, chopping blindly gets bonked', () => {
+  const careful = new LogChopGame({ intensity: 2 });
+  while (!careful.done) {
+    careful.update(0.25);
+    careful.chop(careful.safeSide());
+  }
+  assert.equal(careful.bonks, 0);
+  assert.equal(careful.chopped, careful.total);
+  assert.deepEqual(careful.results, ['perfect', 'perfect', 'perfect']);
+
+  // always chopping from the left walks into branches sooner or later
+  let bonked = 0;
+  for (let i = 0; i < 20; i++) {
+    const blind = new LogChopGame({ intensity: 2 });
+    while (!blind.done) {
+      blind.update(0.7);
+      blind.chop('L');
+    }
+    bonked += blind.bonks;
+  }
+  assert.ok(bonked > 0);
+});
+
+test('log chop: a bonk dazes the pet and snaps the branch off', () => {
+  const g = new LogChopGame({ intensity: 1 });
+  g.branches = [null, 'L', 'L', null, ...g.branches.slice(4).fill(null)];
+  assert.equal(g.chop('L'), 'bonk'); // segment 1 drops onto the pet
+  assert.equal(g.branchAt(1), null);
+  assert.equal(g.chop('R'), null); // too dazed to chop
+  g.update(g.stunTime + 0.01);
+  assert.equal(g.chop('L'), 'bonk'); // segment 2's branch drops on it too
+  g.update(g.stunTime + 0.01);
+  assert.equal(g.chop('R'), 'chop');
+  assert.equal(g.bonks, 2);
+  // out of time: every unreached checkpoint is a miss
+  g.update(g.limit);
+  assert.ok(g.done && g.results.every((r) => r === 'miss'));
+});
+
+/** Plays a glove session, raising the guard `lead` seconds before each punch lands (null = never). */
+function boxOut(lead, pickSide = (p) => p.side) {
+  const g = new GloveGame({ intensity: 1 });
+  let planned = -1;
+  while (!g.done) {
+    const p = g.incoming;
+    if (lead != null && p && planned !== g.resolved && g.time >= p.hitAt - lead) {
+      g.block(pickSide(p));
+      planned = g.resolved;
+    }
+    g.update(1 / 60);
+  }
+  return g;
+}
+
+test('punch glove: late blocks parry, early blocks block, no guard gets hit', () => {
+  const parrier = boxOut(0.08);
+  assert.equal(parrier.hits, 0);
+  assert.deepEqual(parrier.results, ['perfect', 'perfect', 'perfect']);
+  assert.ok(parrier.punches.every((p) => p.outcome === 'parry'));
+
+  const early = boxOut(GUARD.parry + 0.1);
+  assert.equal(early.hits, 0);
+  assert.ok(early.punches.every((p) => p.outcome === 'block'));
+  assert.deepEqual(early.results, ['good', 'good', 'good']);
+
+  const idle = boxOut(null);
+  assert.equal(idle.hits, idle.total);
+  assert.deepEqual(idle.results, ['miss', 'miss', 'miss']);
+
+  const wrongSide = boxOut(0.08, (p) => (p.side === 'L' ? 'R' : 'L'));
+  assert.equal(wrongSide.hits, wrongSide.total);
+});
+
+test('punch glove: the guard can\'t be mashed', () => {
+  const g = new GloveGame();
+  assert.ok(g.block('L'));
+  assert.equal(g.block('R'), false); // still guarding / recovering
+  g.update(GUARD.active + GUARD.recover + 0.01);
+  assert.ok(g.block('R'));
+  // punches never overlap, so there is always time to switch sides
+  for (let i = 1; i < g.punches.length; i++) assert.ok(g.punches[i].windupAt > g.punches[i - 1].hitAt);
 });

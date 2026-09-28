@@ -13,6 +13,7 @@ function freshState() {
     coins: CONFIG.STARTING_COINS,
     inventory: { ...CONFIG.STARTING_INVENTORY },
     record: { wins: 0, losses: 0, streak: 0, bestStreak: 0, trophies: 0, bestTrophies: 0 },
+    trainingDifficulty: 'normal', // last difficulty picked in the training yard
     lastSeen: Date.now(),
   };
 }

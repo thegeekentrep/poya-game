@@ -64,7 +64,27 @@ export function finishFlag(ctx, x, groundY, t) {
   }
 }
 
+/** A checkpoint stake across a track at x; turns green once passed. */
+export function checkpoint(ctx, x, top, bottom, passed) {
+  const color = passed ? '#38b764' : '#f4f4f4';
+  for (let y = top + 1; y < bottom - 1; y += 3) rect(ctx, color, x, y, 1, 2);
+  rect(ctx, INK, x, top - 9, 1, 10);
+  rect(ctx, passed ? '#a7f070' : '#ffcd75', x + 1, top - 9, 4, 3);
+}
+
 // ── Waterfall ─────────────────────────────────────────────────────
+
+/** The slick round stone the pet balances on, its top at groundY. */
+export function balanceRock(ctx, cx, groundY, w) {
+  const h = 7;
+  for (let y = 0; y < h; y++) {
+    const half = Math.round((w / 2) * Math.sqrt(1 - ((y - 1) / h) ** 2)) || 1;
+    rect(ctx, y === 0 ? STONE[1] : y < 3 ? STONE[2] : STONE[3], cx - half, groundY + y, half * 2, 1);
+  }
+  rect(ctx, '#257179', cx - w / 4, groundY, 3, 1); // moss
+  rect(ctx, WATER[0], cx + w / 5, groundY + 1, 2, 1); // wet shine
+}
+
 
 /** A rocky cliff face spanning [x0, x1], from the top of the stage down to groundY. */
 export function cliff(ctx, x0, x1, groundY) {
@@ -123,26 +143,81 @@ export function splash(ctx, cx, y, spread, t) {
 
 // ── Striking log ──────────────────────────────────────────────────
 
-/** A wooden post planted at (x, groundY), tilted by `angle` about its base. */
-export function strikingLog(ctx, x, groundY, angle = 0, height = 38) {
-  const w = 12;
-  ctx.save();
-  ctx.translate(Math.round(x), groundY);
-  ctx.rotate(angle);
-  rect(ctx, INK, -w / 2 - 1, -height - 1, w + 2, height + 1);
-  rect(ctx, WOOD.mid, -w / 2, -height, w, height);
-  rect(ctx, WOOD.light, -w / 2, -height, 3, height);
-  rect(ctx, WOOD.dark, w / 2 - 3, -height, 3, height);
-  for (let y = -height + 6; y < -2; y += 7) rect(ctx, WOOD.deep, -w / 2 + 3 + (y % 3), y, 4, 1);
-  // cut top with rings
-  rect(ctx, WOOD.light, -w / 2, -height - 3, w, 3);
-  rect(ctx, WOOD.mid, -w / 2 + 3, -height - 2, w - 6, 1);
-  // straw wrap where it gets hit
-  rect(ctx, '#ffcd75', -w / 2, -height * 0.62, w, 5);
-  rect(ctx, '#ef7d57', -w / 2, -height * 0.62 + 2, w, 1);
-  ctx.restore();
-  // dirt mound
-  rect(ctx, '#8a5a36', x - w / 2 - 4, groundY - 2, w + 8, 3);
+const LEAF = ['#a7f070', '#38b764', '#257179'];
+
+/** One chunk of log, w wide and h tall, with its top-left at (x, y). `row` varies the bark. */
+export function logSegment(ctx, x, y, w, h, row = 0) {
+  rect(ctx, INK, x - 1, y, w + 2, h);
+  rect(ctx, WOOD.mid, x, y, w, h);
+  rect(ctx, WOOD.light, x, y, 3, h);
+  rect(ctx, WOOD.dark, x + w - 3, y, 3, h);
+  rect(ctx, WOOD.deep, x + 3 + Math.floor(hash(row + 7) * (w - 8)), y + 2 + Math.floor(hash(row) * (h - 4)), 3, 1); // bark knot
+  rect(ctx, WOOD.dark, x, y + h - 1, w, 1); // seam between chunks
+}
+
+/** A leafy branch sticking out of the log's `side` ('L' | 'R'), level with a segment at y. */
+export function logBranch(ctx, trunkX, trunkW, y, side, len = 20) {
+  const dir = side === 'L' ? -1 : 1;
+  const from = side === 'L' ? trunkX : trunkX + trunkW;
+  for (let i = 0; i < len; i++) {
+    const bx = from + dir * i - (dir < 0 ? 1 : 0);
+    const by = y - Math.floor(i / 7); // angled slightly up
+    rect(ctx, INK, bx, by - 1, 1, 5);
+    rect(ctx, i % 5 ? WOOD.mid : WOOD.dark, bx, by, 1, 3);
+  }
+  const tipX = from + dir * len;
+  const tipY = y - Math.floor(len / 7);
+  for (let k = 0; k < 7; k++) {
+    const lx = tipX + dir * (Math.floor(hash(k + 3) * 8) - 3);
+    const ly = tipY - 3 + Math.floor(hash(k + 11) * 7);
+    rect(ctx, LEAF[k % 3], lx - 2, ly - 1, 4, 3);
+  }
+}
+
+/** The stump the log stands on: h tall, cut rings showing once the log is gone. */
+export function logStump(ctx, x, groundY, w, h, bare = false) {
+  logSegment(ctx, x, groundY - h, w, h, 99);
+  rect(ctx, '#8a5a36', x - 4, groundY - 2, w + 8, 3); // dirt mound
+  if (bare) {
+    rect(ctx, WOOD.light, x, groundY - h - 2, w, 2);
+    rect(ctx, WOOD.dark, x + 3, groundY - h - 1, w - 6, 1);
+  }
+}
+
+/** The leafy crown on top of the log, centred on cx with its base at y. */
+export function treeCrown(ctx, cx, y) {
+  for (let k = 0; k < 18; k++) {
+    const lx = cx + Math.floor(hash(k + 21) * 28) - 14;
+    const ly = y - 2 - Math.floor(hash(k + 51) * 14);
+    rect(ctx, LEAF[k % 3], lx - 3, ly - 2, 6, 4);
+  }
+}
+
+/** A chopped chunk (with its branch, if any) flung away toward `dir` and tumbling. */
+export function flyingChunk(x, y, w, h, dir, row, branch) {
+  return (ctx, p, age) => {
+    ctx.save();
+    ctx.globalAlpha = p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3;
+    ctx.translate(Math.round(x + w / 2 + dir * age * 130), Math.round(y + h / 2 - age * 40 + 160 * age * age));
+    ctx.rotate(dir * age * 9);
+    logSegment(ctx, -w / 2, -h / 2, w, h, row);
+    if (branch) logBranch(ctx, -w / 2, w, -h / 2 + 3, branch, 14);
+    ctx.restore();
+  };
+}
+
+/** A snapped-off branch tumbling down on `side`. */
+export function fallingBranch(trunkX, trunkW, y, side) {
+  return (ctx, p, age) => {
+    ctx.save();
+    ctx.globalAlpha = 1 - p * p;
+    const dir = side === 'L' ? -1 : 1;
+    const base = side === 'L' ? trunkX : trunkX + trunkW; // where it snapped off
+    ctx.translate(Math.round(base + dir * age * 20), Math.round(y + 120 * age * age));
+    ctx.rotate(dir * age * 6);
+    logBranch(ctx, 0, 0, 0, side, 16);
+    ctx.restore();
+  };
 }
 
 export function woodChips(x, y, dir, count = 6) {
@@ -155,8 +230,12 @@ export function woodChips(x, y, dir, count = 6) {
 
 // ── Punch glove machine ───────────────────────────────────────────
 
-/** The machine stands at (x, groundY); the glove reaches `reach` pixels to the left. */
-export function punchMachine(ctx, x, groundY, reach) {
+/**
+ * The machine stands at (x, groundY); the glove reaches `reach` pixels to the left.
+ * `charge` (0..1) winds it up: the glove pulls back and a warning light blinks faster.
+ */
+export function punchMachine(ctx, x, groundY, reach, { charge = 0, t = 0 } = {}) {
+  if (charge > 0) reach -= Math.round(charge * 4) + (Math.floor(t * 30) % 2); // cocked and trembling
   const armY = groundY - 24;
   // spring arm
   const coils = Math.max(3, Math.round(reach / 5));
@@ -177,8 +256,15 @@ export function punchMachine(ctx, x, groundY, reach) {
   rect(ctx, INK, x - 1, armY - 11, 22, 21);
   rect(ctx, STONE[2], x, armY - 10, 20, 19);
   rect(ctx, STONE[1], x, armY - 10, 20, 3);
-  rect(ctx, '#ffcd75', x + 3, armY - 5, 3, 3);
-  rect(ctx, '#b13e53', x + 9, armY - 5, 3, 3);
+  const blink = charge > 0 && Math.floor(t * (6 + charge * 18)) % 2 === 0;
+  rect(ctx, blink ? '#f4f4f4' : '#ffcd75', x + 3, armY - 5, 3, 3);
+  rect(ctx, blink ? '#ef7d57' : '#b13e53', x + 9, armY - 5, 3, 3);
+  if (charge > 0) {
+    // "!" warning above the machine
+    rect(ctx, INK, x + 8, armY - 24, 4, 10);
+    rect(ctx, '#ffcd75', x + 9, armY - 23, 2, 6);
+    rect(ctx, '#ffcd75', x + 9, armY - 16, 2, 1);
+  }
   rect(ctx, STONE[3], x + 3, armY + 2, 14, 2);
   rect(ctx, INK, x + 7, armY + 10, 6, groundY - armY - 10);
   rect(ctx, STONE[3], x + 3, groundY - 3, 14, 3);
