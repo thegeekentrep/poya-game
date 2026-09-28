@@ -10,7 +10,8 @@
  *               sx/sy stretch, alpha, trail (afterimages from this keyframe on)
  *               ease  'in' to accelerate into this keyframe (dives), otherwise smooth
  *   contact : seconds until the blow lands; the battle log waits this long
- *   cast    : (stage, me, foe) effects when the move starts
+ *   cast    : (stage, me, foe, head) effects when the move starts; head(age) is where the
+ *             user's snout is `age` seconds in, for effects that ride along with it
  *   impact  : (stage, me, foe, crit) effects when an attack connects
  *   attack  : false for moves that don't strike (they don't break stealth)
  */
@@ -37,15 +38,58 @@ function keyframeMotion(frames, reach) {
 // Where to put effects on the target.
 const front = (me, foe) => foe.cx - me.dir * foe.w * 0.15;
 const at = (stage, draw, duration, delay = 0) => stage.effect(draw, duration, { delay });
+// Jaws on the biter's snout that gape as it closes in and snap shut on the target when
+// the bite lands. `head` (from cast) makes them ride along; `dy` shifts them, e.g. to bite low.
+const chomp = (stage, me, foe, snap, { head = null, dy = 0, ...opts } = {}) => {
+  const spot = head ? (age) => ({ x: head(age).x, y: head(age).y + dy }) : { x: front(me, foe), y: foe.cy - 2 + dy };
+  at(stage, fx.jaws(spot, me.dir, { snap, ...opts }), snap + 0.5);
+};
+
+/**
+ * How the target takes a blow, in the same keyframe format as a move's frames except
+ * that f is pixels shoved away from the attacker and a negative a reels back.
+ * A move picks one with `react`; crits shove harder.
+ */
+const REACT = {
+  knock: [[0, {}], [0.07, { f: 6, a: -0.15, sx: 0.9 }], [0.25, { f: 5, a: -0.05 }], [0.45, {}]],
+  jolt: [[0, {}], [0.05, { f: 3, a: -0.1, sx: 0.94 }], [0.22, {}]],
+  // held in the jaws and shaken side to side, then flung off
+  shaken: [
+    [0, {}], [0.06, { f: -3, a: 0.18, sx: 0.9 }], [0.14, { f: 2, a: -0.18 }], [0.22, { f: -3, a: 0.18 }],
+    [0.3, { f: 2, a: -0.18 }], [0.38, { f: -2, a: 0.1 }], [0.48, { f: 9, up: 3, a: -0.25 }], [0.58, { f: 8 }], [0.8, {}],
+  ],
+  // bitten in the leg: buckles and limps
+  limp: [[0, {}], [0.08, { f: 3, a: 0.3, sy: 0.82 }], [0.5, { f: 2, a: 0.22, sy: 0.86 }], [0.8, {}]],
+  // flattened from above
+  squash: [[0, {}], [0.06, { sx: 1.28, sy: 0.6 }], [0.32, { sx: 1.18, sy: 0.72 }], [0.44, { sx: 0.94, sy: 1.1 }], [0.6, {}]],
+  // crushed in a hold
+  squeeze: [
+    [0, {}], [0.08, { f: -2, sx: 0.76, sy: 1.12 }], [0.2, { f: -2, sx: 0.86, sy: 1.04 }], [0.32, { f: -2, sx: 0.74, sy: 1.14 }],
+    [0.44, { f: -2, sx: 0.86, sy: 1.04 }], [0.56, { f: -2, sx: 0.76, sy: 1.12 }], [0.85, {}],
+  ],
+  // bowled over backwards
+  heavy: [[0, {}], [0.08, { f: 12, up: 6, a: -0.4 }], [0.24, { f: 16, a: -0.1, ease: 'in' }], [0.32, { f: 16, sy: 0.85 }], [0.7, {}]],
+  // popped off the ground
+  launch: [[0, {}], [0.12, { f: 6, up: 22, a: -0.6 }], [0.32, { f: 12, a: -0.15, ease: 'in' }], [0.4, { f: 12, sy: 0.8 }], [0.75, {}]],
+  // blown back, feet sliding
+  blown: [[0, {}], [0.3, { f: 14, a: -0.12, sx: 0.92 }], [0.5, { f: 14 }], [0.8, {}]],
+};
+const HURT_FLASH = 0.18; // seconds the target flashes white when hit
 
 export const MOVES = {
   // ── Wolf ──
   bite: {
-    frames: [[0, {}], [0.12, { f: -0.08, sy: 0.9 }], [0.3, { f: 1, a: 0.1, trail: true }], [0.42, { f: 1 }], [0.7, {}]],
+    // lunge, sink the teeth in, shake the head, let go
+    frames: [
+      [0, {}], [0.12, { f: -0.08, sy: 0.9 }], [0.3, { f: 1, a: 0.1, trail: true }], [0.38, { f: 1, a: -0.15 }], [0.46, { f: 1, a: 0.18 }],
+      [0.54, { f: 1, a: -0.15 }], [0.62, { f: 1, a: 0.18 }], [0.72, { f: 0.95 }], [0.8, { f: 0.4, up: 4 }], [1.0, {}],
+    ],
     contact: 0.3,
+    react: 'shaken',
+    cast: (stage, me, foe, head) => chomp(stage, me, foe, 0.3, { head }),
     impact: (stage, me, foe, crit) => {
-      at(stage, fx.fangs(front(me, foe), foe.cy - 2, { color: crit ? '#ffcd75' : '#f4f4f4' }), 0.5);
-      at(stage, fx.burst(front(me, foe), foe.cy, { r: 10 }), 0.3, 0.08);
+      at(stage, fx.burst(front(me, foe), foe.cy - 2, { r: 10, color: crit ? '#ffcd75' : '#f4f4f4' }), 0.3);
+      at(stage, fx.droplets(front(me, foe), foe.cy, me.dir, { count: crit ? 8 : 4 }), 0.6, 0.35);
     },
   },
   shadow_stalk: {
@@ -63,6 +107,7 @@ export const MOVES = {
       [0.55, { f: 1, up: 0, a: 0.35, ease: 'in', trail: true }], [0.62, { f: 1, sy: 0.8 }], [0.8, { f: 1 }], [1.05, {}],
     ],
     contact: 0.55,
+    react: 'squash',
     cast: (stage, me) => at(stage, fx.dust(me.x, me.y), 0.5, 0.12),
     impact: (stage, me, foe) => {
       at(stage, fx.clawMarks(front(me, foe), foe.cy, me.dir, { len: 28 }), 0.55);
@@ -71,10 +116,15 @@ export const MOVES = {
     },
   },
   go_for_the_throat: {
-    frames: [[0, {}], [0.15, { f: -0.1, sy: 0.85, a: -0.1 }], [0.32, { f: 1.05, up: 8, a: -0.2, trail: true }], [0.38, { f: 1, up: 4 }], [0.5, { f: 1 }], [0.8, {}]],
+    // leaps up at the neck and hangs on, thrashing
+    frames: [
+      [0, {}], [0.15, { f: -0.1, sy: 0.85, a: -0.1 }], [0.34, { f: 1.05, up: 8, a: -0.2, trail: true }], [0.42, { f: 1.05, up: 8, a: 0.1 }],
+      [0.5, { f: 1.05, up: 8, a: -0.25 }], [0.58, { f: 1.05, up: 8, a: 0.1 }], [0.66, { f: 1.05, up: 8, a: -0.25 }], [0.76, { f: 0.9, up: 4 }], [1.0, {}],
+    ],
     contact: 0.34,
+    react: 'shaken',
+    cast: (stage, me, foe, head) => chomp(stage, me, foe, 0.34, { head }),
     impact: (stage, me, foe, crit) => {
-      at(stage, fx.fangs(front(me, foe), foe.cy - 6, { color: '#f4f4f4', width: 16 }), 0.5);
       at(stage, fx.slashArc(front(me, foe), foe.cy - 4, me.dir, { color: '#b13e53', r: 16 }), 0.5, 0.06);
       at(stage, fx.droplets(front(me, foe), foe.cy - 4, me.dir, { count: crit ? 12 : 7 }), 0.7, 0.08);
     },
@@ -84,6 +134,7 @@ export const MOVES = {
   pummel: {
     frames: [[0, {}], [0.2, { f: 0.9, trail: true }], [0.28, { f: 1.05 }], [0.36, { f: 0.9 }], [0.44, { f: 1.05 }], [0.52, { f: 0.9 }], [0.6, { f: 1.05 }], [0.85, {}]],
     contact: 0.28,
+    react: 'jolt',
     impact: (stage, me, foe) => {
       [0, 0.16, 0.32].forEach((delay, i) => {
         at(stage, fx.burst(front(me, foe), foe.cy + [-4, 4, -8][i], { r: 9, rays: 6 }), 0.25, delay);
@@ -94,6 +145,7 @@ export const MOVES = {
   ground_slam: {
     frames: [[0, {}], [0.3, { up: 24, sy: 1.1, a: -0.1 }], [0.42, { up: 0, sy: 0.72, ease: 'in' }], [0.62, { sy: 0.75 }], [0.85, {}]],
     contact: 0.72,
+    react: 'launch',
     cast: (stage, me, foe) => {
       stage.shake(4, 0.4, { delay: 0.42 });
       at(stage, fx.dust(me.x, me.y, { spread: 34, puffs: 8 }), 0.6, 0.42);
@@ -121,6 +173,7 @@ export const MOVES = {
   grapple: {
     frames: [[0, {}], [0.25, { f: 1.1, trail: true }], [0.3, { f: 1.15, sx: 1.06 }], [0.65, { f: 1.15, sx: 1.06, a: 0.05 }], [0.9, {}]],
     contact: 0.3,
+    react: 'squeeze',
     impact: (stage, me, foe) => {
       at(stage, fx.squeeze(foe.cx, foe.cy), 0.45);
       at(stage, fx.squeeze(foe.cx, foe.cy), 0.45, 0.2);
@@ -132,11 +185,13 @@ export const MOVES = {
   swipe: {
     frames: [[0, {}], [0.15, { f: 0.2, up: 4, a: -0.25 }], [0.3, { f: 0.85, a: 0.2, trail: true }], [0.45, { f: 0.85, a: 0.15 }], [0.7, {}]],
     contact: 0.3,
+    react: 'knock',
     impact: (stage, me, foe) => at(stage, fx.clawMarks(front(me, foe), foe.cy, me.dir), 0.5),
   },
   maul: {
     frames: [[0, {}], [0.18, { f: 0.1, up: 8, a: -0.35, sy: 1.1 }], [0.34, { f: 1, a: 0.25, trail: true }], [0.42, { f: 0.95, a: -0.1 }], [0.5, { f: 1, a: 0.25 }], [0.8, {}]],
     contact: 0.34,
+    react: 'knock',
     impact: (stage, me, foe) => {
       at(stage, fx.clawMarks(front(me, foe), foe.cy, me.dir, { len: 26 }), 0.55);
       at(stage, fx.clawMarks(front(me, foe), foe.cy, me.dir, { len: 26, color: '#b13e53', down: false }), 0.55, 0.14);
@@ -164,6 +219,7 @@ export const MOVES = {
   talon_strike: {
     frames: [[0, {}], [0.15, { f: -0.05, up: 10 }], [0.35, { f: 1, up: 6, a: 0.2, trail: true }], [0.45, { f: 1.05, up: 14 }], [0.75, {}]],
     contact: 0.35,
+    react: 'knock',
     impact: (stage, me, foe) => {
       at(stage, fx.clawMarks(front(me, foe), foe.cy - 4, me.dir, { len: 16, gap: 5 }), 0.45);
       at(stage, fx.burst(front(me, foe), foe.cy - 4, { r: 8, rays: 6 }), 0.3);
@@ -184,6 +240,7 @@ export const MOVES = {
       [0.65, { f: 1, up: 0, a: 0.6, ease: 'in', trail: true }], [0.72, { f: 1, sy: 0.8, a: 0.3 }], [1.0, { f: 1 }], [1.3, {}],
     ],
     contact: 0.65,
+    react: 'squash',
     impact: (stage, me, foe) => {
       at(stage, fx.flash('#f4f4f4', 0.35), 0.2);
       at(stage, fx.burst(foe.cx, foe.cy, { r: 22, rays: 10 }), 0.45);
@@ -214,10 +271,12 @@ export const MOVES = {
     },
   },
   crippling_bite: {
-    frames: [[0, {}], [0.12, { f: -0.08, sy: 0.9 }], [0.3, { f: 1, up: -2, a: 0.2, trail: true }], [0.42, { f: 1 }], [0.7, {}]],
+    // ducks low and clamps onto a leg
+    frames: [[0, {}], [0.12, { f: -0.08, sy: 0.9 }], [0.3, { f: 1, up: -2, a: 0.3, trail: true }], [0.4, { f: 1, a: 0.4 }], [0.5, { f: 1, a: 0.25 }], [0.6, { f: 1, a: 0.4 }], [0.85, {}]],
     contact: 0.3,
+    react: 'limp',
+    cast: (stage, me, foe, head) => chomp(stage, me, foe, 0.3, { head, dy: 4 }),
     impact: (stage, me, foe) => {
-      at(stage, fx.fangs(front(me, foe), foe.y - 10, { width: 16 }), 0.5);
       at(stage, fx.rising(foe.cx, foe.cy, { color: '#5d275d', count: 5, spread: 24, height: 14 }), 0.5, 0.1);
     },
   },
@@ -233,6 +292,7 @@ export const MOVES = {
   hamstring: {
     frames: [[0, {}], [0.12, { sy: 0.85 }], [0.3, { f: 1, up: -2, a: 0.25, sy: 0.85, trail: true }], [0.42, { f: 1, sy: 0.85 }], [0.7, {}]],
     contact: 0.3,
+    react: 'limp',
     impact: (stage, me, foe) => {
       at(stage, fx.slashArc(front(me, foe), foe.y - 6, me.dir, { r: 12, from: -2, to: -0.4 }), 0.45);
       at(stage, fx.droplets(front(me, foe), foe.y - 6, me.dir, { count: 4 }), 0.6, 0.06);
@@ -241,21 +301,29 @@ export const MOVES = {
   feral_rush: {
     frames: [[0, {}], [0.15, { f: 1, a: 0.1, trail: true }], [0.25, { f: 0.7 }], [0.38, { f: 1.05, up: 6, a: -0.1, trail: true }], [0.48, { f: 1 }], [0.75, {}]],
     contact: 0.15,
-    impact: (stage, me, foe, crit) => at(stage, fx.fangs(front(me, foe), foe.cy - 2, { color: crit ? '#ffcd75' : '#f4f4f4', width: 16 }), 0.4),
+    react: 'jolt',
+    // two quick snaps, one per hit
+    impact: (stage, me, foe, crit) => chomp(stage, me, foe, 0.08, { len: 14, open: 5, color: crit ? '#ffcd75' : '#f4f4f4' }),
   },
   vanishing_strike: {
     frames: [[0, {}], [0.2, { f: 1, trail: true }], [0.3, { f: 1 }], [0.6, { alpha: 0.3, trail: true }], [0.75, { alpha: 0.3 }]],
     contact: 0.2,
+    react: 'knock',
     impact: (stage, me, foe) => {
       at(stage, fx.clawMarks(front(me, foe), foe.cy, me.dir, { color: '#94b0c2' }), 0.45);
       at(stage, fx.rising(me.x, me.y, { color: '#333c57', count: 10, spread: 36, height: 26, size: 3 }), 0.8, 0.25);
     },
   },
   blood_frenzy: {
-    frames: [[0, {}], [0.15, { f: -0.1, sy: 0.85 }], [0.3, { f: 1, a: 0.15, trail: true }], [0.45, { f: 1, a: 0.05 }], [0.75, {}]],
+    // bites and savages, head thrashing hard
+    frames: [
+      [0, {}], [0.15, { f: -0.1, sy: 0.85 }], [0.3, { f: 1, a: 0.15, trail: true }], [0.37, { f: 1, a: -0.25 }], [0.44, { f: 1, a: 0.25 }],
+      [0.51, { f: 1, a: -0.25 }], [0.58, { f: 1, a: 0.25 }], [0.66, { f: 1, a: -0.2 }], [0.78, { f: 0.5, up: 4 }], [1.0, {}],
+    ],
     contact: 0.3,
+    react: 'shaken',
+    cast: (stage, me, foe, head) => chomp(stage, me, foe, 0.3, { head, gum: '#5d275d', color: '#ffcd75' }),
     impact: (stage, me, foe) => {
-      at(stage, fx.fangs(front(me, foe), foe.cy - 2, { color: '#b13e53' }), 0.5);
       at(stage, fx.droplets(front(me, foe), foe.cy, me.dir, { count: 9 }), 0.7, 0.05);
     },
   },
@@ -272,10 +340,14 @@ export const MOVES = {
   lunar_fang: {
     frames: [[0, {}], [0.25, { f: -0.15, up: 30, a: -0.3 }], [0.45, { f: 1, up: 4, a: 0.3, ease: 'in', trail: true }], [0.55, { f: 1 }], [0.9, {}]],
     contact: 0.45,
-    cast: (stage, me) => at(stage, fx.ring(me.cx, me.cy - me.h, { r: 10, color: '#f4f4f4' }), 0.4),
+    react: 'heavy',
+    cast: (stage, me, foe, head) => {
+      at(stage, fx.ring(me.cx, me.cy - me.h, { r: 10, color: '#f4f4f4' }), 0.4);
+      // oversized spectral moon-jaws
+      chomp(stage, me, foe, 0.45, { head, len: 26, open: 12, color: '#73eff7', gum: '#29366f' });
+    },
     impact: (stage, me, foe) => {
       at(stage, fx.flash('#73eff7', 0.3), 0.25);
-      at(stage, fx.fangs(front(me, foe), foe.cy - 2, { color: '#73eff7', width: 26, gap: 14 }), 0.55);
       at(stage, fx.burst(front(me, foe), foe.cy, { r: 18, color: '#73eff7' }), 0.4, 0.05);
       stage.shake(3, 0.3);
     },
@@ -290,6 +362,7 @@ export const MOVES = {
   knuckle_rush: {
     frames: [[0, {}], [0.15, { f: -0.1, sy: 0.85 }], [0.32, { f: 1, trail: true }], [0.42, { f: 0.85 }], [0.52, { f: 1.05, a: 0.1 }], [0.8, {}]],
     contact: 0.32,
+    react: 'knock',
     cast: (stage, me) => at(stage, fx.dust(me.x, me.y, { spread: 26 }), 0.5, 0.15),
     impact: (stage, me, foe) => {
       at(stage, fx.burst(front(me, foe), foe.cy + (Math.random() - 0.5) * 10, { r: 11, rays: 7 }), 0.3);
@@ -308,7 +381,9 @@ export const MOVES = {
   boulder_toss: {
     frames: [[0, {}], [0.25, { up: 6, a: -0.2, sy: 1.1 }], [0.4, { f: 0.2, a: 0.2 }], [0.75, {}]],
     contact: 0.6,
-    cast: (stage, me, foe) => at(stage, fx.groundWave(me.x + (me.w / 2) * me.dir, foe.x, me.y - 20, { color: '#566c86' }), 0.25, 0.38),
+    react: 'heavy',
+    // hoists a boulder overhead and lobs it
+    cast: (stage, me, foe) => at(stage, fx.boulder(me.cx, me.cy - me.h * 0.75, foe.cx, foe.cy, { ground: me.y - 8, lift: 0.38, land: 0.6 }), 0.6),
     impact: (stage, me, foe) => {
       at(stage, fx.burst(foe.cx, foe.cy, { r: 18, color: '#94b0c2', rays: 10 }), 0.4);
       at(stage, fx.dust(foe.x, foe.y, { color: '#566c86', spread: 28 }), 0.5);
@@ -332,6 +407,7 @@ export const MOVES = {
   hammer_fist: {
     frames: [[0, {}], [0.25, { f: 0.7, up: 20, a: -0.3, sy: 1.1 }], [0.38, { f: 1, up: 0, a: 0.35, ease: 'in' }], [0.55, { f: 1, sy: 0.85 }], [0.85, {}]],
     contact: 0.38,
+    react: 'squash',
     impact: (stage, me, foe) => {
       at(stage, fx.burst(foe.cx, foe.cy - foe.h * 0.3, { r: 16, rays: 10 }), 0.4);
       at(stage, fx.ring(foe.x, foe.y - 1, { r: 28, squash: 0.3, color: '#7a4a32' }), 0.45);
@@ -354,6 +430,7 @@ export const MOVES = {
       [0.6, { f: 0.9 }], [0.72, { f: 1.1, up: 6, a: 0.2 }], [1.0, {}],
     ],
     contact: 0.3,
+    react: 'jolt',
     impact: (stage, me, foe) => {
       at(stage, fx.burst(front(me, foe), foe.cy + (Math.random() - 0.5) * 12, { r: 11, rays: 8, color: '#ef7d57' }), 0.25);
       stage.shake(2, 0.15);
@@ -364,6 +441,7 @@ export const MOVES = {
   bear_hug: {
     frames: [[0, {}], [0.2, { up: 6, sy: 1.12 }], [0.35, { f: 1.1, trail: true }], [0.75, { f: 1.15, sx: 1.08, sy: 0.95 }], [1.0, {}]],
     contact: 0.35,
+    react: 'squeeze',
     impact: (stage, me, foe) => {
       for (const delay of [0, 0.2]) at(stage, fx.squeeze(foe.cx, foe.cy, { color: '#ef7d57' }), 0.45, delay);
       stage.shake(1.5, 0.4);
@@ -372,6 +450,7 @@ export const MOVES = {
   crushing_paw: {
     frames: [[0, {}], [0.2, { f: 0.5, up: 16, a: -0.3, sy: 1.1 }], [0.34, { f: 0.95, up: 0, a: 0.3, ease: 'in' }], [0.5, { f: 0.95, sy: 0.9 }], [0.8, {}]],
     contact: 0.34,
+    react: 'squash',
     impact: (stage, me, foe) => {
       at(stage, fx.clawMarks(front(me, foe), foe.cy, me.dir, { count: 4, len: 24 }), 0.5);
       at(stage, fx.dust(foe.x, foe.y, { spread: 24 }), 0.45);
@@ -390,6 +469,7 @@ export const MOVES = {
   salmon_snatch: {
     frames: [[0, {}], [0.15, { up: 6, a: -0.3 }], [0.3, { f: 0.9, a: 0.3, trail: true }], [0.45, { f: 0.9, up: 4, a: -0.2 }], [0.75, {}]],
     contact: 0.3,
+    react: 'knock',
     impact: (stage, me, foe) => {
       at(stage, fx.clawMarks(front(me, foe), foe.cy, me.dir, { count: 2, down: false }), 0.45);
       at(stage, fx.droplets(front(me, foe), foe.cy, -me.dir, { color: '#41a6f6', count: 8 }), 0.6);
@@ -398,6 +478,7 @@ export const MOVES = {
   rend: {
     frames: [[0, {}], [0.15, { up: 6, a: -0.35 }], [0.3, { f: 0.9, a: 0.3, trail: true }], [0.4, { f: 0.9, a: -0.3 }], [0.5, { f: 0.9, a: 0.3 }], [0.8, {}]],
     contact: 0.3,
+    react: 'knock',
     impact: (stage, me, foe) => {
       at(stage, fx.clawMarks(front(me, foe), foe.cy, me.dir, { color: '#b13e53', len: 26 }), 0.5);
       at(stage, fx.clawMarks(front(me, foe), foe.cy, me.dir, { color: '#b13e53', len: 26, down: false }), 0.5, 0.1);
@@ -416,6 +497,7 @@ export const MOVES = {
   rampage: {
     frames: [[0, {}], [0.2, { f: -0.15, sy: 0.85, a: 0.1 }], [0.4, { f: 1.1, a: 0.15, trail: true }], [0.5, { f: 1.05 }], [0.85, {}]],
     contact: 0.4,
+    react: 'launch',
     cast: (stage, me) => at(stage, fx.dust(me.x, me.y, { spread: 30, puffs: 8 }), 0.5, 0.2),
     impact: (stage, me, foe) => {
       at(stage, fx.burst(foe.cx, foe.cy, { r: 20, rays: 10, color: '#ef7d57' }), 0.4);
@@ -426,6 +508,7 @@ export const MOVES = {
   frenzied_claws: {
     frames: [[0, {}], [0.15, { f: 0.85, a: 0.25, trail: true }], [0.25, { f: 0.85, a: -0.25 }], [0.35, { f: 0.85, a: 0.25 }], [0.45, { f: 0.85, a: -0.25 }], [0.75, {}]],
     contact: 0.15,
+    react: 'jolt',
     impact: (stage, me, foe) => at(stage, fx.clawMarks(front(me, foe), foe.cy + (Math.random() - 0.5) * 10, me.dir, { down: Math.random() < 0.5 }), 0.4),
   },
   ursine_wrath: {
@@ -443,12 +526,14 @@ export const MOVES = {
   gust: {
     frames: [[0, {}], [0.15, { up: 10, sx: 1.1 }], [0.3, { up: 10, f: 0.1, sx: 1.1 }], [0.45, { up: 10, sx: 1.1 }], [0.7, {}]],
     contact: 0.35,
+    react: 'blown',
     cast: (stage, me, foe) => at(stage, fx.soundWaves(me.cx + (me.w / 2) * me.dir, foe.cx, me.cy, me.dir, { color: '#f4f4f4', waves: 3 }), 0.5, 0.1),
     impact: (stage, me, foe) => at(stage, fx.dust(foe.x, foe.y, { color: '#f4f4f4', puffs: 6, spread: 30 }), 0.5),
   },
   razor_wind: {
     frames: [[0, {}], [0.15, { up: 10, a: -0.2, sx: 1.1 }], [0.3, { up: 10, a: 0.15, sx: 1.1 }], [0.6, {}]],
     contact: 0.35,
+    react: 'knock',
     cast: (stage, me, foe) => at(stage, fx.slashArc((me.cx + foe.cx) / 2, me.cy, me.dir, { r: 20, color: '#73eff7' }), 0.35, 0.15),
     impact: (stage, me, foe) => at(stage, fx.slashArc(front(me, foe), foe.cy, me.dir, { r: 16, color: '#f4f4f4' }), 0.4),
   },
@@ -472,6 +557,7 @@ export const MOVES = {
   feather_flurry: {
     frames: [[0, {}], [0.15, { up: 12, a: -0.2, sx: 1.1 }], [0.6, { up: 12, a: -0.1, sx: 1.1 }], [0.8, {}]],
     contact: 0.2,
+    react: 'jolt',
     impact: (stage, me, foe) => {
       at(stage, fx.slashArc(front(me, foe), foe.cy + (Math.random() - 0.5) * 12, me.dir, { r: 10, color: '#ccaa85', size: 1 }), 0.3);
       at(stage, fx.burst(front(me, foe), foe.cy, { r: 7, rays: 5, color: '#f4f4f4' }), 0.25);
@@ -497,6 +583,7 @@ export const MOVES = {
   piercing_beak: {
     frames: [[0, {}], [0.2, { f: -0.15, up: 6, a: -0.2 }], [0.32, { f: 1.05, a: 0.1, sx: 1.12, sy: 0.9, trail: true }], [0.45, { f: 1 }], [0.75, {}]],
     contact: 0.32,
+    react: 'knock',
     impact: (stage, me, foe) => {
       at(stage, fx.burst(front(me, foe), foe.cy - 4, { r: 12, rays: 4, color: '#f4f4f4' }), 0.35);
       at(stage, fx.slashArc(front(me, foe), foe.cy - 4, me.dir, { r: 6, from: 1.2, to: 1.9 }), 0.35);
@@ -508,6 +595,7 @@ export const MOVES = {
       [0.75, { f: 1, up: 0, a: 0.7, ease: 'in', trail: true }], [0.82, { f: 1, sy: 0.75, a: 0.3 }], [1.1, { f: 1 }], [1.4, {}],
     ],
     contact: 0.75,
+    react: 'squash',
     cast: (stage) => {
       at(stage, fx.flash('#29366f', 0.35), 0.5, 0.3);
       at(stage, fx.flash('#f4f4f4', 0.5), 0.15, 0.55);
@@ -524,6 +612,7 @@ export const MOVES = {
   shoulder_charge: {
     frames: [[0, {}], [0.2, { f: -0.15, sy: 0.85, a: 0.15 }], [0.38, { f: 1.05, a: 0.2, trail: true }], [0.48, { f: 1 }], [0.8, {}]],
     contact: 0.38,
+    react: 'heavy',
     cast: (stage, me) => at(stage, fx.dust(me.x, me.y, { spread: 26 }), 0.5, 0.2),
     impact: (stage, me, foe) => {
       at(stage, fx.burst(front(me, foe), foe.cy, { r: 16, rays: 8, color: '#94b0c2' }), 0.35);
@@ -551,6 +640,7 @@ export const MOVES = {
   torrent_crash: {
     frames: [[0, {}], [0.3, { f: 0.2, up: 50, a: -0.3 }], [0.48, { f: 1, up: 0, a: 0.3, ease: 'in', trail: true }], [0.6, { f: 1, sy: 0.8 }], [0.95, {}]],
     contact: 0.48,
+    react: 'squash',
     impact: (stage, me, foe) => {
       at(stage, fx.droplets(foe.cx, foe.cy - foe.h / 2, me.dir, { color: '#73eff7', count: 14 }), 0.7);
       at(stage, fx.droplets(foe.cx, foe.cy - foe.h / 2, -me.dir, { color: '#41a6f6', count: 10 }), 0.7);
@@ -561,11 +651,13 @@ export const MOVES = {
   combo_strike: {
     frames: [[0, {}], [0.15, { f: 0.95, trail: true }], [0.25, { f: 0.8 }], [0.35, { f: 1, a: 0.1 }], [0.45, { f: 0.8 }], [0.55, { f: 1.05, a: -0.1 }], [0.8, {}]],
     contact: 0.15,
+    react: 'jolt',
     impact: (stage, me, foe) => at(stage, fx.burst(front(me, foe), foe.cy + (Math.random() - 0.5) * 12, { r: 9, rays: 6, color: '#d8a066' }), 0.25),
   },
   log_splitter: {
     frames: [[0, {}], [0.3, { f: -0.1, up: 12, a: -0.4, sy: 1.1 }], [0.45, { f: 1, a: 0.35, trail: true }], [0.55, { f: 1, sy: 0.9 }], [0.95, {}]],
     contact: 0.45,
+    react: 'squash',
     impact: (stage, me, foe) => {
       at(stage, fx.flash('#ffcd75', 0.25), 0.2);
       at(stage, fx.slashArc(front(me, foe), foe.cy, me.dir, { r: 20, from: -0.3, to: 0.3, size: 3 }), 0.45);
@@ -582,6 +674,7 @@ export const MOVES = {
   counterpunch: {
     frames: [[0, {}], [0.2, { f: -0.15, a: -0.2, sx: 0.9 }], [0.34, { f: 1.05, a: 0.1, sx: 1.1, trail: true }], [0.44, { f: 1 }], [0.75, {}]],
     contact: 0.34,
+    react: 'heavy',
     impact: (stage, me, foe, crit) => {
       at(stage, fx.burst(front(me, foe), foe.cy, { r: 18, rays: 10, color: crit ? '#ffcd75' : '#ef7d57' }), 0.4);
       stage.shake(3, 0.3);
@@ -590,11 +683,13 @@ export const MOVES = {
   quick_step: {
     frames: [[0, {}], [0.12, { f: 1, trail: true }], [0.2, { f: 1 }], [0.35, { f: -0.15, up: 4, trail: true }], [0.55, {}]],
     contact: 0.12,
+    react: 'jolt',
     impact: (stage, me, foe) => at(stage, fx.clawMarks(front(me, foe), foe.cy, me.dir, { count: 2, len: 16, color: '#73eff7' }), 0.35),
   },
   blitz: {
     frames: [[0, {}], [0.15, { f: 1.1, trail: true }], [0.3, { f: -0.1, trail: true }], [0.45, { f: 1.1, trail: true }], [0.6, { f: 1 }], [0.85, {}]],
     contact: 0.15,
+    react: 'jolt',
     cast: (stage, me) => at(stage, fx.dust(me.x, me.y, { color: '#f4f4f4', puffs: 6 }), 0.4),
     impact: (stage, me, foe) => {
       at(stage, fx.burst(front(me, foe), foe.cy, { r: 12, rays: 8, color: '#73eff7' }), 0.3);
@@ -638,20 +733,39 @@ export function performMove(stage, userId, targetId, abilityId) {
   const foe = stage.actorBox(targetId);
   if (me && foe) {
     const reach = foe.x - me.x - Math.sign(foe.x - me.x) * foe.w * 0.55;
-    stage.animate(userId, keyframeMotion(move.frames, reach), duration);
-    move.cast?.(stage, me, foe);
+    const motion = keyframeMotion(move.frames, reach);
+    stage.animate(userId, motion, duration);
+    const head = (age) => {
+      const pose = motion(Math.min(1, age / duration));
+      return { x: me.x + pose.dx + me.dir * me.w * 0.42, y: me.cy - me.h * 0.15 + pose.dy };
+    };
+    move.cast?.(stage, me, foe, head);
   }
   return { contact: move.contact, duration };
 }
 
 export const isAttackMove = (abilityId) => moveFor(abilityId).attack !== false;
 
-/** Effects on the target when an attack connects. */
+/** How the target takes the blow: its reaction keyframes, flashing white at first. Crits shove harder. */
+function performReaction(stage, targetId, me, move, crit) {
+  const frames = REACT[move.react] ?? REACT.knock;
+  const push = keyframeMotion(frames, me.dir * (crit ? 1.6 : 1));
+  const duration = frames.at(-1)[0];
+  stage.animate(targetId, (p) => {
+    const pose = push(p);
+    const age = p * duration;
+    return { ...pose, trail: false, variant: age < HURT_FLASH && Math.floor(age * 30) % 2 === 0 ? 'flash' : 'normal' };
+  }, duration);
+}
+
+/** Effects on the target when an attack connects, including how it reacts. */
 export function performImpact(stage, userId, targetId, abilityId, { crit = false } = {}) {
   const me = stage.actorBox(userId);
   const foe = stage.actorBox(targetId);
   if (!me || !foe) return;
-  moveFor(abilityId).impact?.(stage, me, foe, crit);
+  const move = moveFor(abilityId);
+  performReaction(stage, targetId, me, move, crit);
+  move.impact?.(stage, me, foe, crit);
   if (crit) {
     at(stage, fx.flash('#ffcd75', 0.3), 0.25);
     stage.shake(3, 0.3);

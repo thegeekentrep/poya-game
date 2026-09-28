@@ -170,7 +170,6 @@ export default {
         }
         case 'hit':
         case 'crit':
-          stage.play(ev.target, 'hurt');
           performImpact(stage, other(ev.target), ev.target, lastMove, { crit: ev.kind === 'crit' });
           if (ev.kind === 'crit') stage.emote(ev.target, 'star', 2);
           break;

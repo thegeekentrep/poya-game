@@ -44,20 +44,71 @@ export const slashArc = (x, y, dir, { r = 18, from = -1.2, to = 1.1, color = '#f
     }
   };
 
-/** Two rows of fangs snapping shut on (x, y). */
-export const fangs = (x, y, { color = '#f4f4f4', gap = 12, width = 22 } = {}) =>
-  (ctx, p) => {
-    ctx.globalAlpha = p < 0.6 ? 1 : 1 - (p - 0.6) / 0.4;
-    ctx.fillStyle = color;
-    const close = ease(Math.min(1, p / 0.25));
-    const open = (1 - close) * gap + 2;
-    for (let tx = -width / 2; tx < width / 2; tx += 5) {
-      for (let k = 0; k < 4; k++) {
-        const half = 2 - Math.floor(k / 2);
-        ctx.fillRect(Math.round(x + tx + 2 - half), Math.round(y - open - 4 + k), half * 2, 1); // upper fang
-        ctx.fillRect(Math.round(x + tx + 2 - half), Math.round(y + open + 3 - k), half * 2, 1); // lower fang
+/**
+ * A side-on mouth hinged on the attacker's side: it gapes open just before `snap`
+ * seconds, snaps shut then (time it to the blow landing), clamps on with a tremble,
+ * then fades. `at` is where the teeth meet: { x, y }, or at(age) -> { x, y } to ride
+ * along with the biter's head. The mouth opens toward `dir`.
+ */
+export const jaws = (at, dir, { snap = 0.3, len = 16, open = 7, color = '#f4f4f4', gum = '#b13e53' } = {}) =>
+  (ctx, p, age) => {
+    const gape = 0.18; // how long the mouth is visibly opening
+    if (age < snap - gape) return;
+    const { x, y } = typeof at === 'function' ? at(age) : at;
+    const shut = age >= snap;
+    const half = shut ? 0 : open * Math.sin(((age - (snap - gape)) / gape) * Math.PI * 0.85);
+    const hold = age - snap;
+    ctx.globalAlpha = !shut || hold < 0.3 ? 1 : Math.max(0, 1 - (hold - 0.3) / 0.2);
+    const jitter = shut && hold < 0.3 ? (Math.floor(hold * 30) % 2 ? 1 : -1) : 0;
+    const hx = x - (dir * len) / 2;
+    for (let i = 0; i <= len; i++) {
+      const u = i / len;
+      const cx = Math.round(hx + dir * i);
+      const gap = Math.round(half * u);
+      const top = Math.round(y) - gap + jitter;
+      const bottom = Math.round(y) + gap + jitter;
+      if (gap > 1) {
+        ctx.fillStyle = '#1a1c2c'; // inside of the mouth
+        ctx.fillRect(cx, top - 1, 1, bottom - top + 2);
       }
+      ctx.fillStyle = gum;
+      ctx.fillRect(cx, top - 5, 1, 2);
+      ctx.fillRect(cx, bottom + 3, 1, 2);
+      ctx.fillStyle = color;
+      // interlocking teeth: upper fangs every 4px, lower ones between them
+      const upper = [3, 2, 0, 1][i % 4];
+      const lower = [0, 1, 3, 1][i % 4];
+      if (upper) ctx.fillRect(cx, top - 3, 1, upper);
+      if (lower) ctx.fillRect(cx, bottom + 3 - lower, 1, lower);
     }
+  };
+
+/**
+ * A rock heaved up off the ground at `ground` until it is overhead at (x0, y0) by `lift`
+ * seconds, then lobbed in an arc to land on (x1, y1) at `land`.
+ */
+export const boulder = (x0, y0, x1, y1, { ground = y0, lift = 0.25, land = 0.5, color = '#566c86', shine = '#94b0c2', edge = '#333c57', r = 8 } = {}) =>
+  (ctx, p, age) => {
+    const q = Math.min(1, Math.max(0, (age - lift) / (land - lift)));
+    const heave = ease(Math.min(1, age / (lift * 0.7)));
+    const x = x0 + (x1 - x0) * q;
+    const y = q > 0 ? y0 + (y1 - y0) * q - Math.sin(q * Math.PI) * 26 : ground + (y0 - ground) * heave;
+    const disc = (rad, fill) => {
+      ctx.fillStyle = fill;
+      for (let dy = -rad; dy <= rad; dy++) {
+        const w = Math.round(Math.sqrt(rad * rad - dy * dy));
+        ctx.fillRect(Math.round(x - w), Math.round(y + dy), w * 2, 1);
+      }
+    };
+    disc(r, edge);
+    disc(r - 1, color);
+    // a highlight and a crack that tumble as it flies
+    const spin = Math.floor(q * 8) % 4;
+    const [sx, sy] = [[-3, -3], [1, -3], [1, 1], [-3, 1]][spin];
+    ctx.fillStyle = shine;
+    ctx.fillRect(Math.round(x + sx), Math.round(y + sy), 3, 2);
+    ctx.fillStyle = edge;
+    ctx.fillRect(Math.round(x - sx), Math.round(y - sy), 2, 1);
   };
 
 /** Star-shaped impact burst. */
