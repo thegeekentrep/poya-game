@@ -24,7 +24,7 @@ export const EXERCISES = {
 
 /**
  * Chosen before each session. `level` makes every station play harder (see
- * gameIntensity in training/games.js); `reward` scales stat gains, XP and mastery.
+ * gameIntensity in training/games.js); `reward` scales stat gains, XP, coins and mastery.
  */
 export const TRAINING_DIFFICULTY = {
   easy: { name: 'Easy', level: 0, reward: 0.75 },
@@ -50,4 +50,6 @@ export const TRAINING_RULES = {
   masteryTiers: [12, 36], // mastery points needed for each station move (a rep adds its quality: perfect 1, good 0.6)
   baseXp: 12,
   bonusXp: 18, // scaled by session quality
+  baseCoins: 4, // prize money, so a broke player can still earn food and medicine
+  bonusCoins: 8, // scaled by session quality
 };

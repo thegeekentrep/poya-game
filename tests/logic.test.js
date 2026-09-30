@@ -365,6 +365,9 @@ test('training difficulty scales gains, XP and mastery', () => {
   const hard = run('hard');
   assert.ok(easy.r.gains[0].gain < normal.r.gains[0].gain && normal.r.gains[0].gain < hard.r.gains[0].gain);
   assert.ok(easy.r.xp < normal.r.xp && normal.r.xp < hard.r.xp);
+  assert.ok(easy.r.coins < normal.r.coins && normal.r.coins < hard.r.coins);
+  const sloppy = completeTraining(createPet('gorilla'), 'log', [0.1, 0.1, 0.1]).coins;
+  assert.ok(sloppy > 0 && sloppy < normal.r.coins); // even a bad session pays a little
   assert.ok(hard.pet.mastery.log > normal.pet.mastery.log);
   assert.ok(gameIntensity('hard', 2) > gameIntensity('hard', 0) && gameIntensity('hard') > gameIntensity('easy'));
 });

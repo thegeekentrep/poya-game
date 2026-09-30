@@ -110,7 +110,7 @@ export function createFoodPanel(ctx) {
     h(
       'p',
       { class: 'panel-note food-note' },
-      h('span', { class: 'hint-long' }, 'Buy food with coins earned in the arena. Every species has favorites. Click a picture for details.'),
+      h('span', { class: 'hint-long' }, 'Buy food with coins earned by training or in the arena. Every species has favorites. Click a picture for details.'),
       h('span', { class: 'hint-short' }, `Tap a food to see what it does and if ${game.pet.name} likes it.`),
     ),
     h('ul', { class: 'food-list' }, rows),

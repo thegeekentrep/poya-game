@@ -83,7 +83,7 @@ export function openTrainingModal({ pet, exerciseId, onComplete }) {
         b.classList.toggle('is-active', on);
         b.setAttribute('aria-pressed', String(on));
       });
-      note.textContent = `${rewardText(id)}, XP and mastery.`;
+      note.textContent = `${rewardText(id)}, XP, coins and mastery.`;
     }
     choose(difficulty);
     play.replaceChildren(h('div', { class: 'seg-group diff-picker', role: 'group', 'aria-label': 'Difficulty' }, buttons), note);
@@ -316,11 +316,13 @@ export function openTrainingModal({ pet, exerciseId, onComplete }) {
     keyHandler = () => {};
     play.replaceChildren(); // the controls are done with: make room for the results
     result = completeTraining(pet, exerciseId, sim.qualities, { difficulty });
+    save.coins += result.coins;
     scene.finish(result.avgQ >= 0.6);
     setTimeout(() => playSfx(result.levels ? 'levelup' : 'trained'), 250);
     const lines = [
       ...result.gains.map(({ stat, gain }) => `${STAT_LABELS[stat]} ${gain > 0 ? '+' : ''}${formatStat(stat, gain)}`),
       `+${result.xp} XP`,
+      `+${result.coins} coins`,
     ];
     if (result.reward !== 1) lines.push(`${TRAINING_DIFFICULTY[difficulty].name} ×${result.reward}`);
     if (result.specialty) lines.push('Specialty bonus ×1.5');

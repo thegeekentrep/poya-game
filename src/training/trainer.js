@@ -1,5 +1,5 @@
 /**
- * Turns a finished training session into stat gains, costs and XP.
+ * Turns a finished training session into stat gains, costs, XP and coins.
  */
 import { EXERCISES, STAT_GAIN, TRAINING_RULES as R, TRAINING_DIFFICULTY } from './exercises.js';
 import { getSpecies, addXp, movesLearnedSince, setEquipped } from '../pets/pet.js';
@@ -102,7 +102,8 @@ export function completeTraining(pet, exerciseId, qualities, { difficulty = 'nor
   const breakthroughs = ex.moves.slice(before, mastery(pet, exerciseId).tier);
 
   const xp = Math.round((R.baseXp + R.bonusXp * avgQ) * reward);
+  const coins = Math.round((R.baseCoins + R.bonusCoins * avgQ) * reward); // the caller pays these out
   const levels = addXp(pet, xp);
   const learned = movesLearnedSince(pet, pet.level - levels);
-  return { exerciseId, gains, xp, levels, learned, breakthroughs, avgQ, specialty, boosted, moodMult: mood.mult, difficulty, reward };
+  return { exerciseId, gains, xp, coins, levels, learned, breakthroughs, avgQ, specialty, boosted, moodMult: mood.mult, difficulty, reward };
 }
